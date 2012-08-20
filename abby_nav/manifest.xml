@@ -1,0 +1,14 @@
+<package>
+  <description brief="abby_nav">
+
+     abby_nav
+
+  </description>
+  <author>Ed</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/abby_nav</url>
+
+</package>
+
+
