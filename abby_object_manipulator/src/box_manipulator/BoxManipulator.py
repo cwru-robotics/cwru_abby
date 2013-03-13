@@ -1,20 +1,26 @@
 #! /usr/bin/python
 
 import roslib; roslib.load_manifest('abby_object_manipulator')
-from Queue import Queue
 import rospy
-import actionlib
-from object_manipulation_msgs.msg import *
-from geometry_msgs.msg import Pose, Quaternion, Point
-from object_manipulation_msgs.srv import *
-from arm_navigation_msgs.msg import *
+
 from abby_gripper.srv import *
-import math
-from math import sin, cos
-import copy
-import numpy
+import actionlib
+from arm_navigation_msgs.msg import *
+from geometry_msgs.msg import Pose, PoseStamped, Quaternion, Point
+from kinematics_msgs.msg import *
+from kinematics_msgs.srv import *
+from object_manipulation_msgs.msg import *
+from object_manipulation_msgs.srv import *
+from Queue import Queue
+from sensor_msgs.msg import JointState
 import tf
 import tf.transformations as transformations
+
+import copy
+import math
+from math import sin, cos, pi
+import numpy
+from threading import Lock
 
 class BoxManipulator:
     #TODO Get these from the parameter server
@@ -23,9 +29,9 @@ class BoxManipulator:
     armActionName = 'move_irb_120'
     toolLinkName = "gripper_body"
     frameID = "/irb_120_base_link"
-    preGraspDistance = .1 #meters
+    preGraspDistance = .05 #meters
     gripperFingerLength = 0.115 #meters
-    gripperOpenWidth = 0.08 #0.065 #meters
+    gripperOpenWidth = 0.085 #0.065 #meters
     gripperClosedWidth = 0.046 #meters
     touchLinks = gripperCollisionNames = ("gripper_body", "gripper_jaw_1", "gripper_jaw_2")
     attachLinkName = "gripper_jaw_1"
@@ -35,7 +41,12 @@ class BoxManipulator:
         self._moveArm = actionlib.SimpleActionClient(self.armActionName, MoveArmAction)
         self._moveArm.wait_for_server()
         rospy.loginfo('Box manipulator Connected to arm action server.')
+        self._ik_server = rospy.ServiceProxy('/abby_irb_120_kinematics/get_constraint_aware_ik', GetConstraintAwarePositionIK)
         self._gripperClient = rospy.ServiceProxy('abby_gripper/gripper', gripper)
+        self._joint_state_lock = Lock()
+        with self._joint_state_lock:
+            self._joint_states = JointState()
+        self._joint_state_listener = rospy.Subscriber('/joint_states', JointState, self._jointStateCallback)
         rospy.loginfo('Box manipulator Connected to gripper service.')
         self._attachPub = rospy.Publisher('attached_collision_object', AttachedCollisionObject)
         rospy.loginfo('Box manipulator Publishing collision attachments on /attached_collision_object')
@@ -98,6 +109,22 @@ class BoxManipulator:
         #Add attach object task to queue
         self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_ATTACH, object_name = goal.collision_object_name))
         self.runNextTask()
+    
+    '''Adds received joint information to internally stored joint information'''
+    def _jointStateCallback(self, joints):
+        with self._joint_state_lock:
+            self._joint_states.header = joints.header
+            for msg_index, joint_name in enumerate(joints.name):
+                if not joint_name in self._joint_states.name:
+                    self._joint_states.name.append(joint_name)
+                    self._joint_states.position.append(joints.position[msg_index])
+                    self._joint_states.velocity.append(0)#append(joints.velocity[msg_index])
+                    self._joint_states.effort.append(0)#append(joints.effort[msg_index])
+                else:
+                    index = self._joint_states.name.index(joint_name)
+                    self._joint_states.position[index] = joints.position[msg_index]
+                    self._joint_states.velocity[index] = 0#joints.velocity[msg_index]
+                    self._joint_states.effort[index] = 0#joints.effort[msg_index]
     
     def _pickPreemptCB(self):
         rospy.loginfo('Got a pick preempt request')
@@ -195,6 +222,70 @@ class BoxManipulator:
             rospy.logwarn('Skippping unrecognized task in queue.')
             pass
         
+    '''Function to make a grasp pose by searching through the arc of possible grasp angles until one
+        gives you a successful IK result.'''
+    def _makePreGraspPose(self, boxMat, axis):
+        if axis==0: #x axis
+            alpha = 0
+            gamma = 0
+        else: #y axis
+            alpha = pi/2
+            gamma = -pi/2
+        ik_request = PositionIKRequest()
+        ik_request.ik_link_name = self.toolLinkName
+        ik_request.pose_stamped = PoseStamped()
+        ik_request.pose_stamped.header.stamp = rospy.Time.now()
+        ik_request.pose_stamped.header.frame_id = self.frameID
+        with self._joint_state_lock:
+            ik_request.robot_state.joint_state = copy.deepcopy(self._joint_states)
+        ik_request.ik_seed_state.joint_state = ik_request.robot_state.joint_state
+        beta = pi/2
+        while beta < 3*pi/2:
+            rotationMatrix = transformations.euler_matrix(alpha, beta, gamma, 'rzyz')
+            distance = self.preGraspDistance + self.gripperFingerLength
+            preGraspMat = transformations.translation_matrix([0,0,-distance])
+            fullMat = transformations.concatenate_matrices(boxMat, rotationMatrix, preGraspMat)
+            p = transformations.translation_from_matrix(fullMat)
+            q = transformations.quaternion_from_matrix(fullMat)
+            ik_request.pose_stamped.pose.position = Point(p[0],p[1],p[2])
+            ik_request.pose_stamped.pose.orientation = Quaternion(q[0],q[1],q[2],q[3])
+            
+            ik_constraints = Constraints()
+            o_constraint = OrientationConstraint()
+            o_constraint.header.frame_id = self.frameID
+            o_constraint.header.stamp = rospy.Time.now()
+            o_constraint.link_name = self.toolLinkName
+            o_constraint.orientation = ik_request.pose_stamped.pose.orientation
+            o_constraint.absolute_roll_tolerance = 0.04
+            o_constraint.absolute_pitch_tolerance = 0.04
+            o_constraint.absolute_yaw_tolerance = 0.04
+            o_constraint.weight = 1
+            ik_constraints.orientation_constraints.append(o_constraint)
+            pos_constraint = PositionConstraint()
+            pos_constraint.header = o_constraint.header
+            pos_constraint.link_name = self.toolLinkName
+            pos_constraint.position = ik_request.pose_stamped.pose.position
+            #Position tolerance (in final tool frame) is:
+            #  x = gripper open width - box x width
+            #  y = object height * precision multiplier (<=1)
+            #  z = 1 cm
+            #Note that this is probably in the wrong frame, negating the advantage of all of the thinking in the preceding 4 lines
+            #TODO: If you're feeling ambitious, turn this into a mesh and make it the right shape
+            pos_constraint.constraint_region_shape.type = Shape.BOX
+            pos_constraint.constraint_region_shape.dimensions = [0.2, 0.2, 0.2]
+            pos_constraint.weight = 1
+            ik_constraints.position_constraints.append(pos_constraint)
+            
+            ik_resp = self._ik_server(ik_request, ik_constraints, rospy.Duration.from_sec(1.0))
+            if ik_resp.error_code.val > 0:
+                return beta
+            else:
+                print ik_resp.error_code.val
+                beta += 0.01
+        print ik_request
+        print ik_constraints
+        rospy.logerr('No way to pick this up. All IK solutions failed.')
+        return 0
             
     def _makePreGrasp(self, box, objectName):
         '''Given a bounding box, identify an 
@@ -229,35 +320,32 @@ class BoxManipulator:
         if useX and not useY:
             rospy.loginfo("Can only grab box along x axis")
             width = box.box_dims.x
-            if theta >= math.pi/2 and theta <= 3*math.pi/2:
-            	rotationMatrix = transformations.euler_matrix(0, 0, 5*math.pi/6, 0, 'rzyz')
+            if theta >= pi/2 and theta <= 3*pi/2:
+            	rotationMatrix = transformations.euler_matrix(0, 5*pi/6, 0, 'rzyz')
             else:
-                rotationMatrix = transformations.euler_matrix(math.pi, 5*math.pi/6, 0, 'rzyz')
+                rotationMatrix = transformations.euler_matrix(pi, 5*pi/6, 0, 'rzyz')
         elif useY and not useX:
             rospy.loginfo("Can only grab box along y axis")
             width = box.box_dims.y
-            if theta >= 0 and theta <= math.pi:
-                rotationMatrix = transformations.euler_matrix(0, 7*math.pi/6, math.pi/2, 'rzyz')
-            else:
-                rotationMatrix = transformations.euler_matrix(0, 5*math.pi/6, -math.pi/2, 'rzyz')
+            rotationMatrix = transformations.euler_matrix(pi/2, self._makePreGraspPose(boxMat, 1), -pi/2, 'rzyz')
         else:
             #Can use either face for pickup, so pick the one best aligned to the robot
-            if theta >= math.pi/4 and theta >= 3*math.pi/4:
+            if theta >= pi/4 and theta >= 3*pi/4:
                 rospy.loginfo("Grabbing box along -x axis")
                 width = box.box_dims.y
-                rotationMatrix = transformations.euler_matrix(math.pi, 5*math.pi/6, 0, 'rzyz')
-            elif theta >= 3*math.pi/4 and theta <= 5*math.pi/4:
+                rotationMatrix = transformations.euler_matrix(pi, 5*pi/6, 0, 'rzyz')
+            elif theta >= 3*pi/4 and theta <= 5*pi/4:
                 rospy.loginfo("Grabbing box along y axis")
                 width = box.box_dims.x
-                rotationMatrix = transformations.euler_matrix(0, 7*math.pi/6, math.pi/2, 'rzyz')
-            elif theta >= 5*math.pi/4 and theta <= 7*math.pi/4:
+                rotationMatrix = transformations.euler_matrix(pi/2, self._makePreGraspPose(boxMat, 1), -pi/2, 'rzyz')
+            elif theta >= 5*pi/4 and theta <= 7*pi/4:
                 rospy.loginfo("Grabbing box along x axis")
                 width = box.box_dims.y
-                rotationMatrix = transformations.euler_matrix(0, 5*math.pi/6, 0, 'rzyz')
+                rotationMatrix = transformations.euler_matrix(0, 5*pi/6, 0, 'rzyz')
             else:
                 rospy.loginfo("Grabbing box along -y axis")
                 width = box.box_dims.x
-                rotationMatrix = transformations.euler_matrix(0, 5*math.pi/6, -math.pi/2, 'rzyz')
+                rotationMatrix = transformations.euler_matrix(pi/2, self._makePreGraspPose(boxMat, 1), -pi/2, 'rzyz')
         #Rotated TF for visualization
         self._tf_broadcaster.sendTransform(
                 (0,0,0), 
@@ -300,10 +388,10 @@ class BoxManipulator:
         #Note that this is probably in the wrong frame, negating the advantage of all of the thinking in the preceding 4 lines
         #TODO: If you're feeling ambitious, turn this into a mesh and make it the right shape
         pos_constraint.constraint_region_shape.type = Shape.BOX
-        pos_constraint.constraint_region_shape.dimensions = [
-            self.gripperOpenWidth - width, 
-            box.box_dims.z*0.2,
-            0.01]
+        pos_constraint.constraint_region_shape.dimensions = [0.2, 0.2, 0.2]
+        #    self.gripperOpenWidth - width, 
+        #    box.box_dims.z*0.2,
+        #    0.01]
         
         preGraspGoal = MoveArmGoal()
         preGraspGoal.planner_service_name = self.plannerServiceName
