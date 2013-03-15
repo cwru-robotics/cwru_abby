@@ -47,6 +47,9 @@ class BoxManipulator:
         with self._joint_state_lock:
             self._joint_states = JointState()
         self._joint_state_listener = rospy.Subscriber('/joint_states', JointState, self._jointStateCallback)
+        #Wait until we get all the joint states, since they aren't aggregated
+        while len(self._joint_states.name) <  14:
+            rospy.sleep(0.1)
         rospy.loginfo('Box manipulator Connected to gripper service.')
         self._attachPub = rospy.Publisher('attached_collision_object', AttachedCollisionObject)
         rospy.loginfo('Box manipulator Publishing collision attachments on /attached_collision_object')
@@ -195,6 +198,7 @@ class BoxManipulator:
             rospy.loginfo('Waiting for arm action server')
             self._moveArm.wait_for_server()
             rospy.loginfo('Moving the arm')
+            print task.move_goal.motion_plan_request.goal_constraints.position_constraints
             self._moveArm.send_goal(task.move_goal, self._moveArmDoneCB, self._moveArmActiveCB, self._moveArmFeedbackCB)
         elif task.type == task.TYPE_ATTACH:
             rospy.loginfo('Attaching object: %s', task.object_name)
@@ -240,7 +244,7 @@ class BoxManipulator:
             ik_request.robot_state.joint_state = copy.deepcopy(self._joint_states)
         ik_request.ik_seed_state.joint_state = ik_request.robot_state.joint_state
         beta = pi/2
-        while beta < 3*pi/2:
+        '''while beta < 3*pi/2:
             rotationMatrix = transformations.euler_matrix(alpha, beta, gamma, 'rzyz')
             distance = self.preGraspDistance + self.gripperFingerLength
             preGraspMat = transformations.translation_matrix([0,0,-distance])
@@ -276,16 +280,16 @@ class BoxManipulator:
             pos_constraint.weight = 1
             ik_constraints.position_constraints.append(pos_constraint)
             
-            ik_resp = self._ik_server(ik_request, ik_constraints, rospy.Duration.from_sec(1.0))
+            ik_resp = self._ik_server(ik_request, ik_constraints, rospy.Duration.from_sec(10.0))
             if ik_resp.error_code.val > 0:
                 return beta
             else:
-                print ik_resp.error_code.val
+                #print ik_resp.error_code.val
                 beta += 0.01
         print ik_request
         print ik_constraints
-        rospy.logerr('No way to pick this up. All IK solutions failed.')
-        return 0
+        rospy.logerr('No way to pick this up. All IK solutions failed.')'''
+        return 7 * pi / 6
             
     def _makePreGrasp(self, box, objectName):
         '''Given a bounding box, identify an 
@@ -421,6 +425,7 @@ class BoxManipulator:
         
         #Orientation constraint is the same as for pregrasp
         motion_plan_request.goal_constraints.orientation_constraints = copy.deepcopy(preGraspGoal.motion_plan_request.goal_constraints.orientation_constraints)
+        motion_plan_request.goal_constraints.orientation_constraints[0].orientation = Quaternion(0.656778, 0.261999, 0.648401, -0.282093)
         graspGoal.motion_plan_request = motion_plan_request
         
         #Translate from pregrasp position to final position in a roughly straight line
@@ -431,9 +436,9 @@ class BoxManipulator:
         distance = self.preGraspDistance + self.gripperFingerLength/2
         graspTransMat = transformations.translation_matrix([0,0,distance])
         graspMat = transformations.concatenate_matrices(preGraspMat, graspTransMat)
-        print preGraspMat
-        print graspTransMat
-        print graspMat
+        #print preGraspMat
+        #print graspTransMat
+        #print graspMat
         p = transformations.translation_from_matrix(graspMat)
        
         #Publish grasp transform for visualization
@@ -447,9 +452,9 @@ class BoxManipulator:
         pos_constraint = PositionConstraint()
         pos_constraint.header = motion_plan_request.goal_constraints.orientation_constraints[0].header
         pos_constraint.link_name = self.toolLinkName
-        pos_constraint.position = Point(p[0],p[1],p[2])
+        pos_constraint.position = Point(-0.0644721, 0.609922, 0) #Point(p[0],p[1],p[2])
         pos_constraint.constraint_region_shape.type = Shape.BOX
-        pos_constraint.constraint_region_shape.dimensions = [0.01, 0.01, 0.01]
+        pos_constraint.constraint_region_shape.dimensions = [0.001, 0.001, 0.001]
         motion_plan_request.goal_constraints.position_constraints.append(pos_constraint)
         #TODO: Add path constraint to require a (roughly) cartesian move
         
