@@ -32,5 +32,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 # Library containing IKFast plugin 
 rosbuild_add_library(abby_kinematics_lib
   src/abby_irb_120_ikfast_plugin.cpp
-  )
+  src/kdl_search_kinematics_plugin.cpp
+)
+target_link_libraries(abby_kinematics_lib arm_kinematics_constraint_aware_lib)
 target_link_libraries(abby_kinematics_lib lapack)

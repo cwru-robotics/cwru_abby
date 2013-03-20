@@ -14,7 +14,7 @@
     <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher"/>
 
     <!-- Start Rviz visualization tool using saved config file -->
-    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find abby_config)/config/abby.vcg" />
+    <!-- node name="rviz" pkg="rviz" type="rviz" args="-d $(find abby_config)/config/abby.vcg" /-->
 
     <include file="$(find planning_environment)/launch/environment_server.launch">
         <arg name="use_monitor" value="true" />
@@ -32,7 +32,11 @@
 
         <!-- KDL is the default plugin, however you can build an IKFast plugin -->
         <!-- param name="kinematics_solver" type="string" value="arm_kinematics_constraint_aware/KDLArmKinematicsPlugin" /-->
-        <param name="kinematics_solver" type="string" value="abby_irb_120_kinematics/IKFastKinematicsPlugin" />
+        <param name="kinematics_solver" type="string" value="abby_irb_120_kinematics/KDLArmKinematicsPlugin" />
+        <param name="irb_120/max_solver_iterations" value="1000" />
+        <param name="irb_120/max_search_iterations" value="100" />
+        <param name="irb_120/epsilon" value=".02" />
+        <!-- param name="kinematics_solver" type="string" value="abby_irb_120_kinematics/IKFastKinematicsPlugin" /-->
 
    </node>
 
