@@ -5,7 +5,11 @@
     <param name="group" type="string" value="irb_120"/>
     <param name="irb_120/root_name" type="string" value="irb_120_base_link"/>
     <param name="irb_120/tip_name" type="string" value="gripper_body"/>
+    <param name="irb_120/max_solver_iterations" value="1000" />
+    <param name="irb_120/max_search_iterations" value="100" />
+    <param name="irb_120/epsilon" value=".001" />
     <param name="OLDkinematics_solver" type="string" value="abby_irb_120_kinematics/IKFastKinematicsPlugin"/>
-    <param name="kinematics_solver" type="string" value="arm_kinematics_constraint_aware/KDLArmKinematicsPlugin"/>
+    <param name="OLDkinematics_solver2" type="string" value="arm_kinematics_constraint_aware/KDLArmKinematicsPlugin"/>
+    <param name="kinematics_solver" type="string" value="abby_irb_120_kinematics/KDLArmKinematicsPlugin"/>
   </node>
 </launch>
