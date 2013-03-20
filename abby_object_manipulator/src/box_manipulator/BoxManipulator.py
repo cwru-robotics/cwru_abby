@@ -198,7 +198,7 @@ class BoxManipulator:
             rospy.loginfo('Waiting for arm action server')
             self._moveArm.wait_for_server()
             rospy.loginfo('Moving the arm')
-            print task.move_goal.motion_plan_request.goal_constraints.position_constraints
+            print task.move_goal
             self._moveArm.send_goal(task.move_goal, self._moveArmDoneCB, self._moveArmActiveCB, self._moveArmFeedbackCB)
         elif task.type == task.TYPE_ATTACH:
             rospy.loginfo('Attaching object: %s', task.object_name)
@@ -358,7 +358,7 @@ class BoxManipulator:
                 objectName+'_rotated',
                 objectName)
         #Pregrasp TF is rotated box TF translated back along the z axis
-        distance = self.preGraspDistance + self.gripperFingerLength
+        distance = self.gripperFingerLength/2 #self.preGraspDistance + self.gripperFingerLength
         preGraspMat = transformations.translation_matrix([0,0,-distance])
         fullMat = transformations.concatenate_matrices(boxMat, rotationMatrix, preGraspMat)
         p = transformations.translation_from_matrix(fullMat)
@@ -409,6 +409,14 @@ class BoxManipulator:
         o_constraint.weight = 1
         motion_plan_request.goal_constraints.orientation_constraints.append(o_constraint)
         preGraspGoal.motion_plan_request = motion_plan_request
+        
+        #Turn off collision operations between the gripper and all objects
+        for collisionName in self.gripperCollisionNames:
+            collisionOperation = CollisionOperation(collisionName, 
+                                    CollisionOperation.COLLISION_SET_ALL,
+                                    0.0,
+                                    CollisionOperation.DISABLE)
+            preGraspGoal.operations.collision_operations.append(collisionOperation)
         return preGraspGoal
     
     def _makeGraspPath(self, preGraspGoal):
@@ -455,6 +463,7 @@ class BoxManipulator:
         pos_constraint.position = Point(-0.0644721, 0.609922, 0) #Point(p[0],p[1],p[2])
         pos_constraint.constraint_region_shape.type = Shape.BOX
         pos_constraint.constraint_region_shape.dimensions = [0.001, 0.001, 0.001]
+        pos_constraint.weight = 1
         motion_plan_request.goal_constraints.position_constraints.append(pos_constraint)
         #TODO: Add path constraint to require a (roughly) cartesian move
         
