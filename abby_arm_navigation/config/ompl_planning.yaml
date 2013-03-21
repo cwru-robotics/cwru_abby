@@ -58,7 +58,7 @@ irb_120_cartesian:
   longest_valid_segment_fraction: 0.001
 
 default_planner_config: SBLkConfig1
-use_collision_map: false
+use_collision_map: true
 collision_map_safety_timeout: 10000.0
 joint_states_safety_timeout: 1.0
 tf_safety_timeout: 10.0
