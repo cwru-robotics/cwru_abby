@@ -55,7 +55,7 @@ class StowArm:
             if not result:
                 r.sleep()
         status = result.error_code
-        if status == status.SUCCESS:
+        if status.val == status.SUCCESS:
             rospy.loginfo("Arm successfully stowed.")
         else:
             rospy.logwarn("Arm failed to stow.")
