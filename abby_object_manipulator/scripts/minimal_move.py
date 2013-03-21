@@ -147,28 +147,6 @@ class MinimalMover:
             rospy.loginfo('Moving the arm')
             print task.move_goal
             self._moveArm.send_goal(task.move_goal, self._moveArmDoneCB, self._moveArmActiveCB, self._moveArmFeedbackCB)
-        elif task.type == task.TYPE_ATTACH:
-            rospy.loginfo('Attaching object: %s', task.object_name)
-            obj = AttachedCollisionObject()
-            obj.object.header.stamp = rospy.get_rostime()
-            obj.object.header.frame_id = self.frameID
-            obj.object.operation.operation = CollisionObjectOperation.ATTACH_AND_REMOVE_AS_OBJECT
-            obj.object.id = task.object_name
-            obj.link_name = self.attachLinkName
-            obj.touch_links = self.touchLinks
-            self._attachPub.publish(obj)
-            self._tasks.task_done()
-            self.runNextTask()
-        elif task.type == task.TYPE_DETACH:
-            rospy.loginfo('Detaching an object')
-            obj = AttachedCollisionObject()
-            obj.object.header.stamp = rospy.get_rostime()
-            obj.object.header.frame_id = self.frameID
-            obj.object.operation.operation = CollisionObjectOperation.DETACH_AND_ADD_AS_OBJECT
-            obj.object.id = task.object_name
-            self._attachPub.publish(obj)
-            self._tasks.task_done()
-            self.runNextTask()
         else:
             rospy.logwarn('Skippping unrecognized task in queue.')
         
@@ -189,8 +167,8 @@ class MinimalMover:
         pos_constraint.header = o_constraint.header
         pos_constraint.link_name = self.toolLinkName
         pos_constraint.position = Point(-0.064433, 0.609915, 0)
-        pos_constraint.constraint_region_shape.type = Shape.BOX
-        pos_constraint.constraint_region_shape.dimensions = [0.2, 0.2, 0.2]
+        pos_constraint.constraint_region_shape.type = Shape.SPHERE
+        pos_constraint.constraint_region_shape.dimensions = [0.1]
         
         preGraspGoal = MoveArmGoal()
         preGraspGoal.planner_service_name = self.plannerServiceName
@@ -216,10 +194,6 @@ class MinimalMover:
         motion_plan_request.num_planning_attempts = 5
         motion_plan_request.planner_id = ""
         motion_plan_request.allowed_planning_time = rospy.Duration(5,0)
-        
-        with self._joint_state_lock:
-            motion_plan_request.start_state.joint_state = copy.deepcopy(self._joint_states)
-        print "Made it past the lock"
         #Orientation constraint is the same as for previous
         #Create Orientation constraint object
         o_constraint = OrientationConstraint()
@@ -231,14 +205,14 @@ class MinimalMover:
         o_constraint.absolute_pitch_tolerance = 0.04
         o_constraint.absolute_yaw_tolerance = 0.04
         o_constraint.weight = 1
-        #motion_plan_request.goal_constraints.orientation_constraints.append(o_constraint)
+        motion_plan_request.goal_constraints.orientation_constraints.append(o_constraint)
         
         #Translate from pregrasp position to final position in a roughly straight line
         o = o_constraint.orientation
         p = Point(-0.064433, 0.609915, 0)
         preGraspMat = transformations.quaternion_matrix([o.x,o.y,o.z,o.w])
         preGraspMat[:3, 3] = [p.x,p.y,p.z]
-        distance = 1.6#self.preGraspDistance + self.gripperFingerLength/2
+        distance = .3#self.preGraspDistance + self.gripperFingerLength/2
         graspTransMat = transformations.translation_matrix([0,0,distance])
         graspMat = transformations.concatenate_matrices(preGraspMat, graspTransMat)
         #print preGraspMat
@@ -258,18 +232,10 @@ class MinimalMover:
         pos_constraint.header = o_constraint.header
         pos_constraint.link_name = self.toolLinkName
         pos_constraint.position = Point(p[0],p[1],p[2])
-        pos_constraint.constraint_region_shape.type = Shape.BOX
-        pos_constraint.constraint_region_shape.dimensions = [0.01, 0.01, 0.01]
+        pos_constraint.constraint_region_shape.type = Shape.SPHERE
+        pos_constraint.constraint_region_shape.dimensions = [0.01]#[0.01, 0.01, 0.01]
         pos_constraint.weight = 1
         motion_plan_request.goal_constraints.position_constraints.append(pos_constraint)
-        
-        #Turn off collision operations between the gripper and all objects
-        '''for collisionName in self.gripperCollisionNames:
-            collisionOperation = CollisionOperation(collisionName, 
-                                    CollisionOperation.COLLISION_SET_ALL,
-                                    0.0,
-                                    CollisionOperation.DISABLE)
-            graspGoal.operations.collision_operations.append(collisionOperation)'''
         graspGoal.motion_plan_request = motion_plan_request
         return graspGoal
 

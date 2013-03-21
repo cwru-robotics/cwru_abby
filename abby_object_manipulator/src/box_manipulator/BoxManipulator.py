@@ -110,7 +110,7 @@ class BoxManipulator:
         #Add close gripper task to queue
         self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_CLOSE))
         #Add attach object task to queue
-        self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_ATTACH, object_name = goal.collision_object_name))
+        #self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_ATTACH, object_name = goal.collision_object_name))
         self.runNextTask()
     
     '''Adds received joint information to internally stored joint information'''
@@ -166,6 +166,7 @@ class BoxManipulator:
     def _moveArmDoneCB(self, state, result):
         '''If the arm successfully moved to the position, move on to the next task.'''
         if result.error_code.val == result.error_code.SUCCESS:
+            rospy.loginfo("Arm motion successful. Marking task done. Running next task.")
             self._tasks.task_done()
             self.runNextTask()
         else:
@@ -253,33 +254,6 @@ class BoxManipulator:
             q = transformations.quaternion_from_matrix(fullMat)
             ik_request.pose_stamped.pose.position = Point(p[0],p[1],p[2])
             ik_request.pose_stamped.pose.orientation = Quaternion(q[0],q[1],q[2],q[3])
-            
-            ik_constraints = Constraints()
-            o_constraint = OrientationConstraint()
-            o_constraint.header.frame_id = self.frameID
-            o_constraint.header.stamp = rospy.Time.now()
-            o_constraint.link_name = self.toolLinkName
-            o_constraint.orientation = ik_request.pose_stamped.pose.orientation
-            o_constraint.absolute_roll_tolerance = 0.04
-            o_constraint.absolute_pitch_tolerance = 0.04
-            o_constraint.absolute_yaw_tolerance = 0.04
-            o_constraint.weight = 1
-            ik_constraints.orientation_constraints.append(o_constraint)
-            pos_constraint = PositionConstraint()
-            pos_constraint.header = o_constraint.header
-            pos_constraint.link_name = self.toolLinkName
-            pos_constraint.position = ik_request.pose_stamped.pose.position
-            #Position tolerance (in final tool frame) is:
-            #  x = gripper open width - box x width
-            #  y = object height * precision multiplier (<=1)
-            #  z = 1 cm
-            #Note that this is probably in the wrong frame, negating the advantage of all of the thinking in the preceding 4 lines
-            #TODO: If you're feeling ambitious, turn this into a mesh and make it the right shape
-            pos_constraint.constraint_region_shape.type = Shape.BOX
-            pos_constraint.constraint_region_shape.dimensions = [0.2, 0.2, 0.2]
-            pos_constraint.weight = 1
-            ik_constraints.position_constraints.append(pos_constraint)
-            
             ik_resp = self._ik_server(ik_request, ik_constraints, rospy.Duration.from_sec(10.0))
             if ik_resp.error_code.val > 0:
                 return beta
@@ -334,6 +308,7 @@ class BoxManipulator:
             rotationMatrix = transformations.euler_matrix(pi/2, self._makePreGraspPose(boxMat, 1), -pi/2, 'rzyz')
         else:
             #Can use either face for pickup, so pick the one best aligned to the robot
+            #TODO only -y axis is currently correct
             if theta >= pi/4 and theta >= 3*pi/4:
                 rospy.loginfo("Grabbing box along -x axis")
                 width = box.box_dims.y
@@ -358,7 +333,7 @@ class BoxManipulator:
                 objectName+'_rotated',
                 objectName)
         #Pregrasp TF is rotated box TF translated back along the z axis
-        distance = self.gripperFingerLength/2 #self.preGraspDistance + self.gripperFingerLength
+        distance = self.preGraspDistance + self.gripperFingerLength
         preGraspMat = transformations.translation_matrix([0,0,-distance])
         fullMat = transformations.concatenate_matrices(boxMat, rotationMatrix, preGraspMat)
         p = transformations.translation_from_matrix(fullMat)
@@ -391,8 +366,8 @@ class BoxManipulator:
         #  z = 1 cm
         #Note that this is probably in the wrong frame, negating the advantage of all of the thinking in the preceding 4 lines
         #TODO: If you're feeling ambitious, turn this into a mesh and make it the right shape
-        pos_constraint.constraint_region_shape.type = Shape.BOX
-        pos_constraint.constraint_region_shape.dimensions = [0.2, 0.2, 0.2]
+        pos_constraint.constraint_region_shape.type = Shape.SPHERE
+        pos_constraint.constraint_region_shape.dimensions = [0.01]
         #    self.gripperOpenWidth - width, 
         #    box.box_dims.z*0.2,
         #    0.01]
@@ -433,7 +408,7 @@ class BoxManipulator:
         
         #Orientation constraint is the same as for pregrasp
         motion_plan_request.goal_constraints.orientation_constraints = copy.deepcopy(preGraspGoal.motion_plan_request.goal_constraints.orientation_constraints)
-        motion_plan_request.goal_constraints.orientation_constraints[0].orientation = Quaternion(0.656778, 0.261999, 0.648401, -0.282093)
+        #motion_plan_request.goal_constraints.orientation_constraints[0].orientation = Quaternion(0.656778, 0.261999, 0.648401, -0.282093) #stow orientation for debug
         graspGoal.motion_plan_request = motion_plan_request
         
         #Translate from pregrasp position to final position in a roughly straight line
@@ -460,9 +435,10 @@ class BoxManipulator:
         pos_constraint = PositionConstraint()
         pos_constraint.header = motion_plan_request.goal_constraints.orientation_constraints[0].header
         pos_constraint.link_name = self.toolLinkName
-        pos_constraint.position = Point(-0.0644721, 0.609922, 0) #Point(p[0],p[1],p[2])
-        pos_constraint.constraint_region_shape.type = Shape.BOX
-        pos_constraint.constraint_region_shape.dimensions = [0.001, 0.001, 0.001]
+        pos_constraint.position = Point(p[0],p[1],p[2])
+        #pos_constraint.position = Point(-0.0644721, 0.609922, 0) #Stow position for debug
+        pos_constraint.constraint_region_shape.type = Shape.SPHERE
+        pos_constraint.constraint_region_shape.dimensions = [0.01]
         pos_constraint.weight = 1
         motion_plan_request.goal_constraints.position_constraints.append(pos_constraint)
         #TODO: Add path constraint to require a (roughly) cartesian move
@@ -492,8 +468,8 @@ class BoxManipulator:
         pos_constraint.header.frame_id = placePose.header.frame_id
         pos_constraint.link_name = self.toolLinkName
         pos_constraint.position = placePose.pose.position
-        pos_constraint.constraint_region_shape.type = Shape.BOX
-        pos_constraint.constraint_region_shape.dimensions = [0.05, 0.05, 0.05]
+        pos_constraint.constraint_region_shape.type = Shape.SPHERE
+        pos_constraint.constraint_region_shape.dimensions = [0.01]
         pos_constraint.constraint_region_orientation.x = 0;
         pos_constraint.constraint_region_orientation.y = 0;
         pos_constraint.constraint_region_orientation.z = 0;
