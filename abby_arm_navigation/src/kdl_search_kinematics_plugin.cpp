@@ -318,7 +318,7 @@ bool KDLArmKinematicsPlugin::searchPositionIK(const geometry_msgs::Pose &ik_pose
         solution[j] = jnt_pos_out(j);
       }
       error_code = kinematics::SUCCESS;
-      ROS_DEBUG_STREAM("Solved after " << i+1 << " iterations");
+      ROS_INFO_STREAM("Solved after " << i+1 << " iterations");
       return true;
     }      
     jnt_pos_in = getRandomConfiguration();
