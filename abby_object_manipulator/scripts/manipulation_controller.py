@@ -3,7 +3,7 @@
 #####################################################################
 # Software License Agreement (BSD License)
 #
-# Copyright (c) 2013, Edward Vneator, Case Western Reserve University
+# Copyright (c) 2013, Edward Venator, Case Western Reserve University
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@ __author__ = "esv@case.edu (Edward Venator)"
 import roslib; roslib.load_manifest("abby_object_manipulator")
 import rospy
 import actionlib
+from std_srvs.srv import Empty
 from tabletop_object_detector.srv import TabletopSegmentation
 from tabletop_object_detector.msg import TabletopDetectionResult
 from tabletop_collision_map_processing.srv import TabletopCollisionMapProcessing
@@ -102,6 +103,7 @@ class ObjectManipulationController:
         goal.ignore_collisions = False
         
         #Set this to false to enable actual execution of grasping
+        #This not actually implemented in manipulator node, so it does nothing
         goal.only_perform_feasibility_test = True
         
         self._pickupClient.wait_for_server()
@@ -137,6 +139,9 @@ class ObjectManipulationController:
 if __name__ == '__main__':
     rospy.init_node('object_manipulation_controller')
     rospy.loginfo('Started the object manipulation controller')
+    rospy.wait_for_service("/collider_node/reset");
+    resetCollider = rospy.ServiceProxy("/collider_node/reset", Empty)
+    resetCollider()
     controller = ObjectManipulationController()
     timer = rospy.Rate(.2)
     while not rospy.is_shutdown():
