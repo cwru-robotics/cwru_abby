@@ -29,7 +29,7 @@ class BoxManipulator:
     armActionName = 'move_irb_120'
     toolLinkName = "gripper_body"
     frameID = "/irb_120_base_link"
-    preGraspDistance = .05 #meters
+    preGraspDistance = .075 #meters
     gripperFingerLength = 0.115 #meters
     gripperOpenWidth = 0.085 #0.065 #meters
     gripperClosedWidth = 0.046 #meters
@@ -110,7 +110,11 @@ class BoxManipulator:
         #Add close gripper task to queue
         self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_CLOSE))
         #Add attach object task to queue
-        #self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_ATTACH, object_name = goal.collision_object_name))
+        self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_ATTACH, object_name = goal.collision_object_name))
+        #Add lift task to queue
+        self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_MOVE, self._makeLiftPath(preGraspGoal, goal.collision_object_name)))
+        #Mark successful
+        self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_PICK_SUCCESS))
         self.runNextTask()
     
     '''Adds received joint information to internally stored joint information'''
@@ -146,7 +150,7 @@ class BoxManipulator:
         self._moveArm.cancel_all_goals()
         #Accept the goal and read the object information
         goal = self._placeServer.accept_new_goal()
-        #Create goal message for pregrasp position and add it to the task queue
+        #Create goal message for place position and add it to the task queue
         self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_MOVE,self._makePlace(goal)))
         #Add open gripper task to queue
         self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_OPEN))
@@ -166,7 +170,7 @@ class BoxManipulator:
     def _moveArmDoneCB(self, state, result):
         '''If the arm successfully moved to the position, move on to the next task.'''
         if result.error_code.val == result.error_code.SUCCESS:
-            rospy.loginfo("Arm motion successful. Marking task done. Running next task.")
+            rospy.loginfo("Arm motion successful. ")
             self._tasks.task_done()
             self.runNextTask()
         else:
@@ -199,7 +203,7 @@ class BoxManipulator:
             rospy.loginfo('Waiting for arm action server')
             self._moveArm.wait_for_server()
             rospy.loginfo('Moving the arm')
-            print task.move_goal
+            #print task.move_goal
             self._moveArm.send_goal(task.move_goal, self._moveArmDoneCB, self._moveArmActiveCB, self._moveArmFeedbackCB)
         elif task.type == task.TYPE_ATTACH:
             rospy.loginfo('Attaching object: %s', task.object_name)
@@ -223,6 +227,18 @@ class BoxManipulator:
             self._attachPub.publish(obj)
             self._tasks.task_done()
             self.runNextTask()
+        elif task.type == task.TYPE_PICK_SUCCESS:
+            rospy.loginfo('Sending success')
+            result = PickupResult()
+            result.manipulation_result.value = result.manipulation_result.SUCCESS
+            self._pickServer.set_succeeded(result)
+            self.runNextTask()
+        elif task.type == task.TYPE_PLACE_SUCCESS:
+            rospy.loginfo('Sending success')
+            result = PlaceResult()
+            result.manipulation_result.value = result.manipulation_result.SUCCESS
+            self._placeServer.set_succeeded(result)
+            self.runNextTask()
         else:
             rospy.logwarn('Skippping unrecognized task in queue.')
             pass
@@ -238,31 +254,31 @@ class BoxManipulator:
             gamma = -pi/2
         ik_request = PositionIKRequest()
         ik_request.ik_link_name = self.toolLinkName
+        with self._joint_state_lock:
+            ik_request.ik_seed_state.joint_state = copy.deepcopy(self._joint_states)
         ik_request.pose_stamped = PoseStamped()
         ik_request.pose_stamped.header.stamp = rospy.Time.now()
         ik_request.pose_stamped.header.frame_id = self.frameID
-        with self._joint_state_lock:
-            ik_request.robot_state.joint_state = copy.deepcopy(self._joint_states)
-        ik_request.ik_seed_state.joint_state = ik_request.robot_state.joint_state
         beta = pi/2
-        '''while beta < 3*pi/2:
+        while beta < 3*pi/2:
             rotationMatrix = transformations.euler_matrix(alpha, beta, gamma, 'rzyz')
             distance = self.preGraspDistance + self.gripperFingerLength
             preGraspMat = transformations.translation_matrix([0,0,-distance])
             fullMat = transformations.concatenate_matrices(boxMat, rotationMatrix, preGraspMat)
             p = transformations.translation_from_matrix(fullMat)
             q = transformations.quaternion_from_matrix(fullMat)
-            ik_request.pose_stamped.pose.position = Point(p[0],p[1],p[2])
-            ik_request.pose_stamped.pose.orientation = Quaternion(q[0],q[1],q[2],q[3])
-            ik_resp = self._ik_server(ik_request, ik_constraints, rospy.Duration.from_sec(10.0))
-            if ik_resp.error_code.val > 0:
-                return beta
+            print "trying {} radians".format(beta)
+            try:
+                self._ik_server(ik_request, Constraints(), rospy.Duration(5.0))
+            except rospy.service.ServiceException:
+                beta += 0.1
             else:
-                #print ik_resp.error_code.val
-                beta += 0.01
-        print ik_request
-        print ik_constraints
-        rospy.logerr('No way to pick this up. All IK solutions failed.')'''
+                if ik_resp.error_code.val > 0:
+                    return beta
+                else:
+                    #print ik_resp.error_code.val
+                    beta += 0.01
+        rospy.logerr('No way to pick this up. All IK solutions failed.')
         return 7 * pi / 6
             
     def _makePreGrasp(self, box, objectName):
@@ -305,26 +321,27 @@ class BoxManipulator:
         elif useY and not useX:
             rospy.loginfo("Can only grab box along y axis")
             width = box.box_dims.y
-            rotationMatrix = transformations.euler_matrix(pi/2, self._makePreGraspPose(boxMat, 1), -pi/2, 'rzyz')
+            rotationMatrix = transformations.euler_matrix(pi/2, 5*pi/6, -pi/2, 'rzyz')
         else:
             #Can use either face for pickup, so pick the one best aligned to the robot
-            #TODO only -y axis is currently correct
-            if theta >= pi/4 and theta >= 3*pi/4:
+            #TODO only -x and -y are currently correct
+            rospy.loginfo("Theta is %f",theta)
+            if theta >= pi/4 and theta <= 3*pi/4:
+                rospy.loginfo("Grabbing box along -y axis")
+                width = box.box_dims.x
+                rotationMatrix = transformations.euler_matrix(pi/2, 7*pi/6, -pi/2, 'rzyz')
+            elif theta >= 3*pi/4 and theta <= 5*pi/4:
                 rospy.loginfo("Grabbing box along -x axis")
                 width = box.box_dims.y
-                rotationMatrix = transformations.euler_matrix(pi, 5*pi/6, 0, 'rzyz')
-            elif theta >= 3*pi/4 and theta <= 5*pi/4:
+                rotationMatrix = transformations.euler_matrix(pi, 5*pi/6, pi/2, 'rzyz')
+            elif theta >= 5*pi/4 and theta <= 7*pi/4:
                 rospy.loginfo("Grabbing box along y axis")
                 width = box.box_dims.x
                 rotationMatrix = transformations.euler_matrix(pi/2, self._makePreGraspPose(boxMat, 1), -pi/2, 'rzyz')
-            elif theta >= 5*pi/4 and theta <= 7*pi/4:
+            else:
                 rospy.loginfo("Grabbing box along x axis")
                 width = box.box_dims.y
-                rotationMatrix = transformations.euler_matrix(0, 5*pi/6, 0, 'rzyz')
-            else:
-                rospy.loginfo("Grabbing box along -y axis")
-                width = box.box_dims.x
-                rotationMatrix = transformations.euler_matrix(pi/2, self._makePreGraspPose(boxMat, 1), -pi/2, 'rzyz')
+                rotationMatrix = transformations.euler_matrix(0, 5*pi/6, pi/2, 'rzyz')
         #Rotated TF for visualization
         self._tf_broadcaster.sendTransform(
                 (0,0,0), 
@@ -416,7 +433,7 @@ class BoxManipulator:
         p = preGraspGoal.motion_plan_request.goal_constraints.position_constraints[0].position
         preGraspMat = transformations.quaternion_matrix([o.x,o.y,o.z,o.w])
         preGraspMat[:3, 3] = [p.x,p.y,p.z]
-        distance = self.preGraspDistance + self.gripperFingerLength/2
+        distance = self.preGraspDistance/2 + self.gripperFingerLength/2
         graspTransMat = transformations.translation_matrix([0,0,distance])
         graspMat = transformations.concatenate_matrices(preGraspMat, graspTransMat)
         #print preGraspMat
@@ -451,6 +468,27 @@ class BoxManipulator:
                                     CollisionOperation.DISABLE)
             graspGoal.operations.collision_operations.append(collisionOperation)
         return graspGoal
+    
+    def _makeLiftPath(self, preGraspGoal, objectName):
+        '''Given a pregrasp MoveArmGoal message, generate a MoveArmGoal message to lift the object.'''
+        
+        liftGoal = preGraspGoal
+        
+        #Turn off collision operations between the gripper and all objects
+        for collisionName in self.gripperCollisionNames:
+            collisionOperation = CollisionOperation(collisionName, 
+                                    CollisionOperation.COLLISION_SET_ALL,
+                                    0.0,
+                                    CollisionOperation.DISABLE)
+            liftGoal.operations.collision_operations.append(collisionOperation)
+        
+        #Turn off collision operations between the object and all links
+        collisionOperation = CollisionOperation(objectName, 
+                                    CollisionOperation.COLLISION_SET_ALL,
+                                    0.0,
+                                    CollisionOperation.DISABLE)
+        liftGoal.operations.collision_operations.append(collisionOperation)
+        return liftGoal
   
     def _makePlace(self, placeGoal):
         placePose = placeGoal.place_locations.pop()
@@ -497,6 +535,8 @@ class ManipulatorTask:
     TYPE_MOVE = 2
     TYPE_ATTACH = 3
     TYPE_DETACH = 4
+    TYPE_PICK_SUCCESS = 5
+    TYPE_PLACE_SUCCESS = 5
     
     def __init__(self, type=0, move_goal=MoveArmActionGoal(), object_name=""):
         self.type = type

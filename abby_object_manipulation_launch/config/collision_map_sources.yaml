@@ -1,5 +1,5 @@
 cloud_sources:
-  - name: /camera/depth_registered/points
+  - name: /camera/depth_registered/object_modeling_points_filtered
     frame_subsample: 1
     point_subsample: 1
     sensor_frame: camera_depth_optical_frame
