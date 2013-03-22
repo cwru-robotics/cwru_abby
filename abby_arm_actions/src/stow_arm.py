@@ -54,6 +54,8 @@ class StowArm:
             result = self.sendOnce(timeOut)
             if not result:
                 r.sleep()
+        if rospy.is_shutdown():
+            return false
         status = result.error_code
         if status.val == status.SUCCESS:
             rospy.loginfo("Arm successfully stowed.")
@@ -63,5 +65,8 @@ class StowArm:
 if __name__ == '__main__':
     rospy.init_node('stow_arm')
     rospy.loginfo("Node initialized.")
-    stowArm = StowArm()
-    stowArm.sendUntilSuccess()
+    try:
+        stowArm = StowArm()
+        stowArm.sendUntilSuccess()
+    except KeyboardInterrupt:
+        rospy.loginfo("Got Keyboard Interrupt. Shutting down.")

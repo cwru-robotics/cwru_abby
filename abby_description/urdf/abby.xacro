@@ -6,10 +6,10 @@
 	<xacro:irb_120 prefix="irb_120_"/>
     <xacro:abby_no_arm />
     <xacro:abby_gripper />
-    <joint name="frame_arm" type="fixed">
-        <parent link="frame1"/>
+    <joint name="camera_arm" type="fixed">
+        <parent link="camera_rgb_optical_frame"/>
         <child link="irb_120_base_link"/>
-		<origin rpy="3.14159 1.571 0" xyz="0.046 -0.47 0.70"/>
+		<origin rpy="1.641 -0.821 1.582" xyz="-.0310 .575028 .52330"/>
 		<!--origin rpy="-1.571 1.446 1.571" xyz="0.04464 -0.473311 0.753907"/-->
     </joint>
     <joint name="arm_gripper" type="fixed">

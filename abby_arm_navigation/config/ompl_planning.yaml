@@ -62,7 +62,7 @@ use_collision_map: true
 collision_map_safety_timeout: 10000.0
 joint_states_safety_timeout: 1.0
 tf_safety_timeout: 10.0
-default_robot_padding: 0.02
+default_robot_padding: 0.05
 link_padding:
   - link: irb_120 
-    padding: .02
+    padding: .05
