@@ -55,7 +55,7 @@ class StowArm:
             if not result:
                 r.sleep()
         if rospy.is_shutdown():
-            return false
+            return False
         status = result.error_code
         if status.val == status.SUCCESS:
             rospy.loginfo("Arm successfully stowed.")
