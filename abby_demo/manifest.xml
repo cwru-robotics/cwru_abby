@@ -1,0 +1,17 @@
+<package>
+  <description brief="abby_demo">
+
+     abby_demo
+
+  </description>
+  <author>Edward Venator</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/abby_demo</url>
+  <depend package="abby_object_manipulator" />
+  <depend package="abby_arm_actions" />
+  <depend package="move_base_msgs" />
+  <depend package="amcl" />
+</package>
+
+
