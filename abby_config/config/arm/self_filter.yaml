@@ -1,5 +1,5 @@
 min_sensor_dist: 1
-self_see_default_padding: .03
+self_see_default_padding: .05
 self_see_links:
     - name: irb_120_link_1
     - name: irb_120_link_2
