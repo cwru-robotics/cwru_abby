@@ -1,6 +1,7 @@
 local_costmap:
   #Coordinate Frame/TF
   global_frame: /odom
+  robot_base_frame: base_link
   transform_tolerance: 0.35
   
   #Rate
