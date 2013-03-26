@@ -5,10 +5,10 @@
      and Place action goals.
 
   </description>
-  <author>Matei Ciocarlie and Kaijen Hsiao</author>
+  <author>Edward Venator</author>
   <license>BSD</license>
   <review status="unreviewed" notes=""/>
-  <url>http://ros.org/wiki/object_manipulator</url>
+  <url></url>
 
   <depend package="roscpp"/>
   <depend package="rospy"/>
