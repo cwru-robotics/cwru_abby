@@ -60,8 +60,9 @@ from move_base_msgs.msg import MoveBaseGoal
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
 def goToTable():
-    #return True
     '''Go to the table to pick things up from'''
+    #return True
+    rospy.loginfo('Going to the table')
     goal = MoveBaseGoal()
     goal.target_pose.header.frame_id = 'map'
     goal.target_pose.header.stamp = rospy.Time.now()
@@ -138,7 +139,6 @@ if __name__ == '__main__':
     controller = ObjectManipulationController()
     
     #Go to pickup position
-    #rospy.loginfo('Going to the table')
     if not goToTable():
         rospy.logerr("Error going to the table")
         sys.exit(1)
