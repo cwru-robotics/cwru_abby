@@ -160,7 +160,7 @@ if __name__ == '__main__':
             rospy.logwarn("There are no objects on the table")
         #Pick up all objects on table
         for index in range(len(controller.getMapResponse().graspable_objects)):
-            break
+            #break
             rospy.loginfo("Picking up object number %d", index)
             if not controller.pickup(controller.getMapResponse(), index):
                 rospy.logerr("Error picking up object number %d", index)
