@@ -1,0 +1,37 @@
+<launch>
+    <param name="/amcl/initial_cov_aa" value="0.1" />
+    <param name="/amcl/initial_cov_xx" value="0.1" />
+    <param name="/amcl/initial_cov_yy" value="0.1" />
+    <param name="/amcl/initial_pose_a" value="-0.917" />
+    <param name="/amcl/initial_pose_x" value="-0.402" />
+    <param name="/amcl/initial_pose_y" value="96.337" />
+    <include file="$(find abby_launch)/launch/nav.launch" />
+    <include file="$(find abby_object_manipulation_launch)/launch/manipulation_prerequisites.launch" />
+    
+    <!-- tabletop collision map processing -->
+      <node pkg="tabletop_collision_map_processing" name="tabletop_collision_map_processing" 
+            type="tabletop_collision_map_processing_node" respawn="false">
+            <param name="get_model_mesh_srv" value="/objects_database_node/get_model_mesh" />
+	    <param name="static_map_cloud_name" value="full_cloud_filtered" />
+	    <param name="table_thickness" value="0.01" />
+      </node>
+    
+    <!-- pad objects when filtering from collision map-->
+      <rosparam param="/robot_description_planning/default_object_padding">0.05</rosparam>
+      
+    <!-- Load Tabletop Perception -->
+      <include file="$(find abby_object_manipulation_launch)/launch/tabletop_perception.launch">
+      	<arg name="cloud_in" value="/camera/depth_registered/object_modeling_points_filtered"/>
+      </include>
+    
+    <!-- cluster bounding box finder--> 
+      <node name="cluster_bounding_box_finder" pkg="object_manipulator" cwd="node"
+        type="cluster_bounding_box_finder_server.py" respawn="false" >
+	    <param name="z_up_frame" value="/base_link" />
+      </node>
+  
+    <!--object manipulator-->
+      <node name="object_manipulator" pkg="abby_object_manipulator"
+        type="BoxManipulator.py" respawn="false" output="screen">
+      </node> 
+</launch>
