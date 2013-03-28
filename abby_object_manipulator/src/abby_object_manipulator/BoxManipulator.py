@@ -55,12 +55,13 @@ class BoxManipulator:
         rospy.loginfo('Box manipulator Publishing collision attachments on /attached_collision_object')
         self._boundingBoxClient = rospy.ServiceProxy('find_cluster_bounding_box', FindClusterBoundingBox)
         rospy.loginfo('Box manipulator Connected to bounding box service.')
-        self._tf_listener = tf.TransformListener()
         while not rospy.is_shutdown():
             try:
-                self._tf_listener.waitForTransform("/base_link","/irb_120_base_link", rospy.Time(0), rospy.Duration(2.0))
+                self._tf_listener = tf.TransformListener()
+                self._tf_listener.waitForTransform("/base_link","/irb_120_base_link", rospy.Time(0), rospy.Duration(5.0))
             except (tf.Exception):
                 rospy.loginfo('Box manipulator still waiting on a transform')
+                del self._tf_listener
             else:
                 break;
         self._tf_broadcaster = tf.TransformBroadcaster()
@@ -175,6 +176,14 @@ class BoxManipulator:
             self.runNextTask()
         else:
             rospy.logerr("Arm motion failed! Error code:%d",result.error_code.val)
+            if self._placeServer.is_active():
+                result = PlaceResult()
+                result.manipulation_result.value = result.manipulation_result.FAILED
+                self._placeServer.set_aborted(result)
+            if self._pickServer.is_active():
+                result = PickupResult()
+                result.manipulation_result.value = result.manipulation_result.FAILED
+                self._pickServer.set_aborted(result)
             self.clearTasks()
     
     def _moveArmActiveCB(self):
@@ -214,7 +223,7 @@ class BoxManipulator:
             obj.object.id = task.object_name
             obj.link_name = self.attachLinkName
             obj.touch_links = self.touchLinks
-            self._attachPub.publish(obj)
+            #self._attachPub.publish(obj)
             self._tasks.task_done()
             self.runNextTask()
         elif task.type == task.TYPE_DETACH:
@@ -224,7 +233,7 @@ class BoxManipulator:
             obj.object.header.frame_id = self.frameID
             obj.object.operation.operation = CollisionObjectOperation.DETACH_AND_ADD_AS_OBJECT
             obj.object.id = task.object_name
-            self._attachPub.publish(obj)
+            #self._attachPub.publish(obj)
             self._tasks.task_done()
             self.runNextTask()
         elif task.type == task.TYPE_PICK_SUCCESS:
@@ -232,13 +241,15 @@ class BoxManipulator:
             result = PickupResult()
             result.manipulation_result.value = result.manipulation_result.SUCCESS
             self._pickServer.set_succeeded(result)
-            self.runNextTask()
+            self._tasks.task_done()
+            self.clearTasks()
         elif task.type == task.TYPE_PLACE_SUCCESS:
             rospy.loginfo('Sending success')
             result = PlaceResult()
             result.manipulation_result.value = result.manipulation_result.SUCCESS
             self._placeServer.set_succeeded(result)
-            self.runNextTask()
+            self._tasks.task_done()
+            self.clearTasks()
         else:
             rospy.logwarn('Skippping unrecognized task in queue.')
             pass
@@ -433,7 +444,7 @@ class BoxManipulator:
         p = preGraspGoal.motion_plan_request.goal_constraints.position_constraints[0].position
         preGraspMat = transformations.quaternion_matrix([o.x,o.y,o.z,o.w])
         preGraspMat[:3, 3] = [p.x,p.y,p.z]
-        distance = self.preGraspDistance/2 + self.gripperFingerLength/2
+        distance = self.preGraspDistance * .75 + self.gripperFingerLength/2
         graspTransMat = transformations.translation_matrix([0,0,distance])
         graspMat = transformations.concatenate_matrices(preGraspMat, graspTransMat)
         #print preGraspMat
@@ -536,7 +547,7 @@ class ManipulatorTask:
     TYPE_ATTACH = 3
     TYPE_DETACH = 4
     TYPE_PICK_SUCCESS = 5
-    TYPE_PLACE_SUCCESS = 5
+    TYPE_PLACE_SUCCESS = 6
     
     def __init__(self, type=0, move_goal=MoveArmActionGoal(), object_name=""):
         self.type = type
