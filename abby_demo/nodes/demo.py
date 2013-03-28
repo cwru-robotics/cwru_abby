@@ -85,8 +85,8 @@ def goToOperator():
     goal.target_pose.header.frame_id = 'map'
     goal.target_pose.header.stamp = rospy.Time.now()
     
-    goal.target_pose.pose.position.x = -.0491
-    goal.target_pose.pose.position.y = 96.389
+    goal.target_pose.pose.position.x = 0.574
+    goal.target_pose.pose.position.y = 95.22
     goal.target_pose.pose.orientation = Quaternion(0,0,.883525, .468384)
     move_base.send_goal(goal)
     move_base.wait_for_result()
