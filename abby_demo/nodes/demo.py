@@ -37,15 +37,16 @@ __author__ = "esv@case.edu (Edward Venator)"
 
 import roslib; roslib.load_manifest('abby_demo')
 import rospy
-import actionlib
+import actionlib;
+from actionlib_msgs.msg import GoalStatus
 import sys
 
 #Object manipulation
-#from abby_object_manipulator import manipulation_controller
+from abby_object_manipulator.manipulation_controller import ObjectManipulationController
 
 #arm
 from arm_navigation_msgs.msg import MoveArmAction
-#from abby_arm_actions.stow_arm import StowArm
+from abby_arm_actions.stow_arm import StowArm
 
 #Gripper
 from abby_gripper.srv import gripper, gripperRequest
@@ -58,13 +59,62 @@ from move_base_msgs.msg import MoveBaseGoal
 #AMCL
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
+def goToTable():
+    #return True
+    '''Go to the table to pick things up from'''
+    goal = MoveBaseGoal()
+    goal.target_pose.header.frame_id = 'map'
+    goal.target_pose.header.stamp = rospy.Time.now()
+    
+    goal.target_pose.pose.position.x = 1.591
+    goal.target_pose.pose.position.y = 91.559
+    goal.target_pose.pose.orientation = Quaternion(0.0,0.0,-.482518,.875886)
+    move_base.send_goal(goal)
+    move_base.wait_for_result()
+    if move_base.get_state() == GoalStatus.SUCCEEDED:
+        rospy.loginfo("Arrived at pickup position")
+        return True
+    else:
+        rospy.logerr("Could not drive to pickup position %d")
+        return False
+
+def goToOperator():
+    '''Return to operator position'''
+    #return True
+    goal = MoveBaseGoal()
+    goal.target_pose.header.frame_id = 'map'
+    goal.target_pose.header.stamp = rospy.Time.now()
+    
+    goal.target_pose.pose.position.x = -.0491
+    goal.target_pose.pose.position.y = 96.389
+    goal.target_pose.pose.orientation = Quaternion(0,0,.883525, .468384)
+    move_base.send_goal(goal)
+    move_base.wait_for_result()
+    if move_base.get_state() == GoalStatus.SUCCEEDED:
+        rospy.loginfo("Returned to operator position")
+        return True
+    else:
+        rospy.logerr("Could not drive to operator position")
+        return False
+    
+def backup():
+    '''Back up a few cm to give the arm some space to move'''
+    rospy.logerr("You called an unimplemented method! (backup)")
+    sys.exit(1)
+    return False
+
+def perturbBase():
+    '''Randomly move the drivetrain a little to enable picking stuff up'''
+    rospy.logerr("You called an unimplemented method! (perturb)")
+    return False
+
 if __name__ == '__main__':
     rospy.init_node('abby_demo')
     rospy.loginfo("Demo node initialized. Waiting for AMCL...")
     
     #Wait on services and set initial conditions
     #Wait on AMCL
-    rospy.wait_for_service('global_localization')
+    rospy.wait_for_service('/global_localization')
     rospy.loginfo("AMCL is up. Waiting Move Base...")
     #Wait on move base action server
     move_base = actionlib.SimpleActionClient('move_base', MoveBaseAction)
@@ -87,77 +137,49 @@ if __name__ == '__main__':
     rospy.loginfo('Starting the object manipulation controller')
     controller = ObjectManipulationController()
     
-    
     #Go to pickup position
-    rospy.loginfo('Going to the table')
+    #rospy.loginfo('Going to the table')
     if not goToTable():
         rospy.logerr("Error going to the table")
         sys.exit(1)
-    
     while not rospy.is_shutdown(): 
         #Run detection service
         resp = controller.runSegmentation()
         if resp.result == resp.SUCCESS:
             rospy.loginfo("Tabletop detection service returned %d clusters", len(resp.clusters))
-            break;
         elif resp.result == resp.NO_TABLE:
             rospy.logwarn("No table detected")
             perturbBase()
         elif resp.result == resp.NO_CLOUD_RECEIVED:
-            rospy.logwarn("Tabletop segmenter did not receive a point cloud. Has the kinect crashed?")
+            rospy.logwarn("Tabletop segmenter did not receive a point cloud.")
             rospy.sleep(rospy.Duration(1,0))
         elif resp.result == resp.OTHER_ERROR:
             rospy.logerr("Tabletop segmentation error")
             sys.exit(1)
+        elif len(controller.getMapResponse().graspable_objects) == 0:
+            rospy.logwarn("There are no objects on the table")
         #Pick up all objects on table
         for index in range(len(controller.getMapResponse().graspable_objects)):
+            break
             rospy.loginfo("Picking up object number %d", index)
-            while not controller.pickup(controller.getMapResponse(), index):
+            if not controller.pickup(controller.getMapResponse(), index):
+                rospy.logerr("Error picking up object number %d", index)
+                sys.exit(1)
                 #If can't pick up any object, perturb drivetrain, try again
-                perturbBase()
-            while not controller.storeObject():
+                #perturbBase()
+            if not controller.storeObject():
                 #If can't stow object (due to table collision), back up, try again
+                rospy.logwarn("Error storing object number %d", index)
                 backup()
-            #Stow the arm and return to the table
-            stowArm.sendUntilSuccess()
-            goToTable()
-    #Return to operator position
-    goal = MoveBaseGoal()
-    goal.target_pose.header.frame_id = 'map'
-    goal.target_pose.header.stamp = rospy.Time.now()
-    
-    goal.target_pose.pose.position.x = 0.0 #X goes here
-    goal.target_pose.pose.position.y = 0.0 #Y goes here
-    quaternion = tf.transformations.quaternion_about_axis(0.0 , (0,0,1)) #Theta
-    goal.target_pose.pose.orientation = Quaternion(*quaternion) 
-    move_base.send_goal(goal)
-    move_base.wait_for_result()
-    if move_base.get_state() == GoalStatus.SUCCEEDED:
-        rospy.loginfo("Returned to operator position")
+                #controller.storeObject():
+                #Stow the arm and return to the table
+                #stowArm.sendUntilSuccess()
+                #goToTable()
+        break;
+    rospy.loginfo('Picked up all objects. Returning to the operator.')
+    if goToOperator():
+        rospy.loginfo("Finished script. Shutting down")
+        sys.exit(0)
     else:
-        rospy.logerr("Could not drive to operator position")
+        rospy.logerr("Failed to drive back to the operator :(")
         sys.exit(1)
-    rospy.loginfo("Finished script. Shutting down")
-
-def goToTable():
-    '''Go to the table to pick things up from'''
-    goal = MoveBaseGoal()
-    goal.target_pose.header.frame_id = 'map'
-    goal.target_pose.header.stamp = rospy.Time.now()
-    
-    goal.target_pose.pose.position.x = 0.0 #X goes here
-    goal.target_pose.pose.position.y = 0.0 #Y goes here
-    quaternion = tf.transformations.quaternion_about_axis(0.0 , (0,0,1)) #Theta
-    goal.target_pose.pose.orientation = Quaternion(*quaternion) 
-    move_base.send_goal(goal)
-    move_base.wait_for_result()
-    if move_base.get_state() == GoalStatus.SUCCEEDED:
-        rospy.loginfo("Arrived at pickup position")
-    else:
-        rospy.logerr("Could not drive to pickup position")
-        return False
-
-
-def perturbBase():
-    '''Randomly move the drivetrain a little to enable picking stuff up'''
-    return False

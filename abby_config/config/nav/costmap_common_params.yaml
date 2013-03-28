@@ -12,8 +12,10 @@ inflation_radius: 0.5
 #WARNING: footprint assumes arm is in stowed position
 footprint: [
   [-0.292, -0.370],
-  [ 0.916, -0.370],
-  [ 0.916, -0.184],
+  [ 0.816, -0.370],
+  [ 0.816, -0.184],
+#  [ 0.916, -0.370],
+#  [ 0.916, -0.184],
 #  [ 1.153, -0.184],
 #  [ 1.153,  0.055],
 #  [ 0.909,  0.135],
@@ -23,7 +25,7 @@ footprint: [
 ]
 
 #Sensors
-observation_sources: "base_laser1 kinect_mark kinect_clear"
+observation_sources: "base_laser1" # kinect_mark kinect_clear"
 base_laser1: {
   sensor_frame: /base_laser1_link, 
   data_type: LaserScan, 
