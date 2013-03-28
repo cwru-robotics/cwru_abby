@@ -67,3 +67,5 @@ default_robot_padding: 0.075
 link_padding:
   - link: irb_120 
     padding: .075
+  - link: gripper_body
+    padding: .1

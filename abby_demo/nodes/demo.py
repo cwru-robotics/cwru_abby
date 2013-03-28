@@ -60,8 +60,9 @@ from move_base_msgs.msg import MoveBaseGoal
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
 def goToTable():
-    #return True
     '''Go to the table to pick things up from'''
+    #return True
+    rospy.loginfo('Going to the table')
     goal = MoveBaseGoal()
     goal.target_pose.header.frame_id = 'map'
     goal.target_pose.header.stamp = rospy.Time.now()
@@ -85,8 +86,8 @@ def goToOperator():
     goal.target_pose.header.frame_id = 'map'
     goal.target_pose.header.stamp = rospy.Time.now()
     
-    goal.target_pose.pose.position.x = -.0491
-    goal.target_pose.pose.position.y = 96.389
+    goal.target_pose.pose.position.x = 0.574
+    goal.target_pose.pose.position.y = 95.22
     goal.target_pose.pose.orientation = Quaternion(0,0,.883525, .468384)
     move_base.send_goal(goal)
     move_base.wait_for_result()
@@ -138,7 +139,6 @@ if __name__ == '__main__':
     controller = ObjectManipulationController()
     
     #Go to pickup position
-    #rospy.loginfo('Going to the table')
     if not goToTable():
         rospy.logerr("Error going to the table")
         sys.exit(1)
@@ -160,7 +160,7 @@ if __name__ == '__main__':
             rospy.logwarn("There are no objects on the table")
         #Pick up all objects on table
         for index in range(len(controller.getMapResponse().graspable_objects)):
-            break
+            #break
             rospy.loginfo("Picking up object number %d", index)
             if not controller.pickup(controller.getMapResponse(), index):
                 rospy.logerr("Error picking up object number %d", index)
