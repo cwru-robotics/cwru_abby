@@ -15,7 +15,7 @@
         <param name="resolution" type="double" value="1.0" />
         <remap from="scan" to="base_laser1_scan" />
     </node>
-    <node pkg="cwru_base" type="twist_receiver.py" name="twist_receiver">
+    <node pkg="cwru_base" type="twist_receiver.py" name="twist_receiver" output="screen">
         <rosparam command="load" file="$(find cwru_configs)/$(optenv ROBOT sim)/base/base.yaml" />
     </node>
 </launch>
