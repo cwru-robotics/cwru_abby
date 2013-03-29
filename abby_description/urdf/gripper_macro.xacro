@@ -18,9 +18,11 @@
 		</inertial>
 		<collision>
 			<geometry>
-				<mesh filename="package://abby_description/meshes/gripper_body.stl" scale="0.0254 0.0254 0.0254"/>
+			    <cylinder radius="0.04" length="0.13" />
+				<!--mesh filename="package://abby_description/meshes/gripper_body.stl" scale="0.0254 0.0254 0.0254"/-->
 			</geometry>
-			<origin rpy="3.141592653 0 0" xyz="0 0 0.017"/>
+			<origin rpy="0 0 0" xyz="0 0 0.065"/>
+			<!--origin rpy="3.141592653 0 0" xyz="0 0 0.017"/-->
 		</collision>
 	</link>
 	<link name="gripper_jaw_1">
