@@ -47,6 +47,7 @@ from abby_object_manipulator.manipulation_controller import ObjectManipulationCo
 #arm
 from arm_navigation_msgs.msg import MoveArmAction
 from abby_arm_actions.stow_arm import StowArm
+from abby_arm_actions.clear_arm import ClearArm
 
 #Gripper
 from abby_gripper.srv import gripper, gripperRequest
@@ -142,6 +143,11 @@ if __name__ == '__main__':
     if not goToTable():
         rospy.logerr("Error going to the table")
         sys.exit(1)
+    rospy.loginfo("Moving arm to allow better view of table...")
+    #Stow arm
+    clearArm = ClearArm()
+    clearArm.sendUntilSuccess()
+    rospy.loginfo("Running tabletop segmentation...")
     while not rospy.is_shutdown(): 
         #Run detection service
         resp = controller.runSegmentation()
