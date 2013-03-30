@@ -157,6 +157,8 @@ class BoxManipulator:
         self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_OPEN))
         #Add detach object task to queue
         self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_DETACH, object_name = goal.collision_object_name))
+        #Mark successful
+        self._tasks.put_nowait(ManipulatorTask(ManipulatorTask.TYPE_PLACE_SUCCESS))
         self.runNextTask()
     
     def _placePreemptCB(self):
