@@ -446,7 +446,7 @@ class BoxManipulator:
         p = preGraspGoal.motion_plan_request.goal_constraints.position_constraints[0].position
         preGraspMat = transformations.quaternion_matrix([o.x,o.y,o.z,o.w])
         preGraspMat[:3, 3] = [p.x,p.y,p.z]
-        distance = self.preGraspDistance * .75 + self.gripperFingerLength/2
+        distance = self.preGraspDistance * .75 + self.gripperFingerLength * .25
         graspTransMat = transformations.translation_matrix([0,0,distance])
         graspMat = transformations.concatenate_matrices(preGraspMat, graspTransMat)
         #print preGraspMat
