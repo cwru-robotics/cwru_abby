@@ -83,7 +83,7 @@ class ObjectManipulationController:
         '''Calls the segmentation service and sends the result on to the collision map processing server.'''
         segmentationResult = self.segmentationService()
         detectionResult = self.segmentationReplyToDetectionReply(segmentationResult)
-        self.mapResponse = self.collisionMapService(detectionResult, False, False, '/base_link')
+        self.mapResponse = self.collisionMapService(detectionResult, True, True, '/base_link')
         return segmentationResult
     
     def getMapResponse(self):
@@ -92,7 +92,6 @@ class ObjectManipulationController:
     
     def pickup(self, mapResponse, index):
         '''Sends a command to pick up the graspable object at the given index in mapResponse'''
-        pick_timeout = rospy.Duration.from_sec(120.0)
         goal = PickupGoal()
         goal.arm_name = 'irb_120'
         goal.target = mapResponse.graspable_objects[index]
@@ -109,14 +108,14 @@ class ObjectManipulationController:
         
         self._pickupClient.wait_for_server()
         self._pickupClient.send_goal(goal)
-        if self._pickupClient.wait_for_result(pick_timeout):
+        if self._pickupClient.wait_for_result(rospy.Duration.from_sec(120.0)):
             result = self._pickupClient.get_result()
             if result.manipulation_result.value == result.manipulation_result.SUCCESS:
                 self.currentlyHeldObject = goal.target
                 rospy.loginfo("Successfully picked up object")
                 return True;
             rospy.logwarn("Pickup failed. Error %d",result.manipulation_result.value)
-        rospy.logwarn("Pickup timed out after %f seconds", pick_timeout.secs)
+        rospy.logwarn("Pickup timed out after %f seconds", 60.0)
         return False;
 
     def storeObject(self):
@@ -126,17 +125,26 @@ class ObjectManipulationController:
         goal.arm_name = 'irb_120'
         bin_location = PoseStamped()
         bin_location.header.frame_id = '/frame1'
-        bin_location.pose.position.x = -0.198
-        bin_location.pose.position.y = -0.758
-        bin_location.pose.position.z =  0.668
-        bin_location.pose.orientation.x = -0.708
-        bin_location.pose.orientation.y =  0.057
-        bin_location.pose.orientation.z = -0.386
-        bin_location.pose.orientation.w =  0.589
+        bin_location.pose.position.x = -0.174#-0.198
+        bin_location.pose.position.y = -0.672#-0.758
+        bin_location.pose.position.z =  0.835#0.671#0.668
+        bin_location.pose.orientation.x = -0.665#-0.708
+        bin_location.pose.orientation.y =  0.302# 0.057
+        bin_location.pose.orientation.z = -0.122#-0.386
+        bin_location.pose.orientation.w =  0.672# 0.589
         goal.place_locations.append(bin_location)
         goal.collision_object_name = self.currentlyHeldObject.collision_name
         rospy.loginfo('Sent place goal to box manipulator')
-        self._placeClient.send_goal_and_wait(goal, rospy.Duration.from_sec(60.0), rospy.Duration.from_sec(60.0))
+        self._placeClient.send_goal(goal)
+        if self._placeClient.wait_for_result(rospy.Duration.from_sec(60.0)):
+            result = self._placeClient.get_result()
+            if result.manipulation_result.value == result.manipulation_result.SUCCESS:
+                self.currentlyHeldObject = None
+                rospy.loginfo("Successfully stored object in bin")
+                return True
+            rospy.logwarn("Place failed. Error %d",result.manipulation_result.value)
+        rospy.logwarn("Place timed out after %f seconds", 60.0)
+        return False
 if __name__ == '__main__':
     rospy.init_node('object_manipulation_controller')
     rospy.loginfo('Started the object manipulation controller')
