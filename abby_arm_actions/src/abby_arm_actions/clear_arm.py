@@ -5,9 +5,17 @@ import rospy
 import actionlib
 from arm_navigation_msgs.msg import *
 
+LEFT = 0
+RIGHT = 1
+
 class ClearArm:
+    
     def __init__(self):
+        
         self.client = actionlib.SimpleActionClient('move_irb_120', MoveArmAction)
+        
+        self.LEFT = LEFT
+        self.RIGHT = RIGHT
         
         rospy.logdebug("Setting up goal request message.")
         self.goal = MoveArmGoal()
@@ -38,8 +46,12 @@ class ClearArm:
         self.client.wait_for_server()
         rospy.loginfo("Connected to action server.")
         
-    def sendOnce(self, timeOut = 60):
+    def sendOnce(self, direction = RIGHT, timeOut = 60):
         rospy.loginfo('Sending move goal...')
+        if direction==self.LEFT:
+            self.goal.motion_plan_request.goal_constraints.joint_constraints[0].position = -0.50
+        else:
+            self.goal.motion_plan_request.goal_constraints.joint_constraints[0].position = 0.50
         self.client.send_goal(self.goal)
         if self.client.wait_for_result(rospy.Duration(timeOut, 0)):
             return self.client.get_result()
@@ -47,11 +59,11 @@ class ClearArm:
             rospy.logwarn('Timed out attempting to move arm.')
             return False
     
-    def sendUntilSuccess(self, timeOut = 60):
+    def sendUntilSuccess(self, direction = RIGHT, timeOut = 60):
         result = False
         r = rospy.Rate(1)
         while not result and not rospy.is_shutdown():
-            result = self.sendOnce(timeOut)
+            result = self.sendOnce(direction, timeOut)
             if not result:
                 r.sleep()
         if rospy.is_shutdown():
@@ -67,6 +79,7 @@ if __name__ == '__main__':
     rospy.loginfo("Node initialized.")
     try:
         stowArm = ClearArm()
-        stowArm.sendUntilSuccess()
+        stowArm.sendUntilSuccess(RIGHT)
+        stowArm.sendUntilSuccess(LEFT)
     except KeyboardInterrupt:
         rospy.loginfo("Got Keyboard Interrupt. Shutting down.")

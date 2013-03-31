@@ -128,6 +128,7 @@ if __name__ == '__main__':
     rospy.loginfo("move_irb_120 is up. Stowing arm...")
     #Stow arm
     stowArm = StowArm()
+    clearArm = ClearArm()
     stowArm.sendUntilSuccess()
     #Wait on gripper service
     rospy.loginfo("Closing Gripper...")
@@ -143,12 +144,12 @@ if __name__ == '__main__':
     if not goToTable():
         rospy.logerr("Error going to the table")
         sys.exit(1)
-    rospy.loginfo("Moving arm to allow better view of table...")
-    #Stow arm
-    clearArm = ClearArm()
-    clearArm.sendUntilSuccess()
-    rospy.loginfo("Running tabletop segmentation...")
+    
     while not rospy.is_shutdown(): 
+        rospy.loginfo("Moving arm to allow better view of table...")
+        #Move arm
+        clearArm.sendUntilSuccess(clearArm.RIGHT)
+        rospy.loginfo("Running tabletop segmentation...")
         #Run detection service
         resp = controller.runSegmentation()
         if resp.result == resp.SUCCESS:
@@ -164,6 +165,26 @@ if __name__ == '__main__':
             sys.exit(1)
         elif len(controller.getMapResponse().graspable_objects) == 0:
             rospy.logwarn("There are no objects on the table")
+            rospy.loginfo("Moving arm to allow better view of table...")
+            #Move arm
+            clearArm.sendUntilSuccess(clearArm.LEFT)
+            rospy.loginfo("Running tabletop segmentation...")
+            #Run detection service
+            resp = controller.runSegmentation()
+            if resp.result == resp.SUCCESS:
+                rospy.loginfo("Tabletop detection service returned %d clusters", len(resp.clusters))
+            elif resp.result == resp.NO_TABLE:
+                rospy.logwarn("No table detected")
+                perturbBase()
+            elif resp.result == resp.NO_CLOUD_RECEIVED:
+                rospy.logwarn("Tabletop segmenter did not receive a point cloud.")
+                rospy.sleep(rospy.Duration(1,0))
+            elif resp.result == resp.OTHER_ERROR:
+                rospy.logerr("Tabletop segmentation error")
+                sys.exit(1)
+            elif len(controller.getMapResponse().graspable_objects) == 0:
+                rospy.logwarn("There are no objects on the table")
+        
         #Pick up all objects on table
         for index in range(len(controller.getMapResponse().graspable_objects)):
             #break
@@ -174,7 +195,7 @@ if __name__ == '__main__':
                 #If can't pick up any object, perturb drivetrain, try again
                 #perturbBase()
             if not controller.storeObject():
-                #If can't stow object (due to table collision), back up, try again
+                #If can't store object (due to table collision), back up, try again
                 rospy.logwarn("Error storing object number %d", index)
                 backup()
                 #controller.storeObject():
@@ -182,7 +203,9 @@ if __name__ == '__main__':
                 #stowArm.sendUntilSuccess()
                 #goToTable()
         break;
-    rospy.loginfo('Picked up all objects. Returning to the operator.')
+    rospy.loginfo('Picked up all objects. Stowing arm.')
+    stowArm.sendUntilSuccess()
+    rospy.loginfo('Returning to the operator.')
     if goToOperator():
         rospy.loginfo("Finished script. Shutting down")
         sys.exit(0)
