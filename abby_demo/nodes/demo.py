@@ -191,7 +191,8 @@ if __name__ == '__main__':
             rospy.loginfo("Picking up object number %d", index)
             if not controller.pickup(controller.getMapResponse(), index):
                 rospy.logerr("Error picking up object number %d", index)
-                sys.exit(1)
+                continue #Move on to next object
+                #sys.exit(1)
                 #If can't pick up any object, perturb drivetrain, try again
                 #perturbBase()
             if not controller.storeObject():
