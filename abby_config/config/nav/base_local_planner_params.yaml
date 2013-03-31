@@ -17,7 +17,7 @@ TrajectoryPlannerROS:
 #  latch_xy_goal_tolerance: false
   
   #Forward Simulation
-  sim_time: 3.0 #HARLIE: 2.0
+  sim_time: 2.0 #HARLIE: 2.0
 #  sim_granularity: 0.025
   vx_samples: 10
   vtheta_samples: 20
