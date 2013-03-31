@@ -62,7 +62,7 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 
 def goToTable():
     '''Go to the table to pick things up from'''
-    #return True
+    return True
     rospy.loginfo('Going to the table')
     goal = MoveBaseGoal()
     goal.target_pose.header.frame_id = 'map'

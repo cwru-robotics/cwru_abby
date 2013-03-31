@@ -49,9 +49,9 @@ class ClearArm:
     def sendOnce(self, direction = RIGHT, timeOut = 60):
         rospy.loginfo('Sending move goal...')
         if direction==self.LEFT:
-            self.goal.motion_plan_request.goal_constraints.joint_constraints[0].position = -0.50
+            self.goal.motion_plan_request.goal_constraints.joint_constraints[0].position = -0.75
         else:
-            self.goal.motion_plan_request.goal_constraints.joint_constraints[0].position = 0.50
+            self.goal.motion_plan_request.goal_constraints.joint_constraints[0].position = 0.75
         self.client.send_goal(self.goal)
         if self.client.wait_for_result(rospy.Duration(timeOut, 0)):
             return self.client.get_result()
