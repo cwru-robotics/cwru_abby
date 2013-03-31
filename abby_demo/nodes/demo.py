@@ -163,7 +163,7 @@ if __name__ == '__main__':
         elif resp.result == resp.OTHER_ERROR:
             rospy.logerr("Tabletop segmentation error")
             sys.exit(1)
-        elif len(controller.getMapResponse().graspable_objects) == 0:
+        if len(controller.getMapResponse().graspable_objects) == 0:
             rospy.logwarn("There are no objects on the table")
             rospy.loginfo("Moving arm to allow better view of table...")
             #Move arm
@@ -182,7 +182,7 @@ if __name__ == '__main__':
             elif resp.result == resp.OTHER_ERROR:
                 rospy.logerr("Tabletop segmentation error")
                 sys.exit(1)
-            elif len(controller.getMapResponse().graspable_objects) == 0:
+            if len(controller.getMapResponse().graspable_objects) == 0:
                 rospy.logwarn("There are no objects on the table")
         
         #Pick up all objects on table
