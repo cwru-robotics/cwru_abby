@@ -92,6 +92,7 @@ class ObjectManipulationController:
     
     def pickup(self, mapResponse, index):
         '''Sends a command to pick up the graspable object at the given index in mapResponse'''
+        pick_timeout = rospy.Duration.from_sec(120.0)
         goal = PickupGoal()
         goal.arm_name = 'irb_120'
         goal.target = mapResponse.graspable_objects[index]
@@ -108,14 +109,14 @@ class ObjectManipulationController:
         
         self._pickupClient.wait_for_server()
         self._pickupClient.send_goal(goal)
-        if self._pickupClient.wait_for_result(rospy.Duration.from_sec(60.0)):
+        if self._pickupClient.wait_for_result(pick_timeout):
             result = self._pickupClient.get_result()
             if result.manipulation_result.value == result.manipulation_result.SUCCESS:
                 self.currentlyHeldObject = goal.target
                 rospy.loginfo("Successfully picked up object")
                 return True;
             rospy.logwarn("Pickup failed. Error %d",result.manipulation_result.value)
-        rospy.logwarn("Pickup timed out after %f seconds", 60.0)
+        rospy.logwarn("Pickup timed out after %f seconds", pick_timeout.secs)
         return False;
 
     def storeObject(self):

@@ -3,7 +3,7 @@ recovery_behaviors:
       type: clear_costmap_recovery/ClearCostmapRecovery
     - name: aggressive_reset
       type: clear_costmap_recovery/ClearCostmapRecovery
-controller_frequency: 16.0
+controller_frequency: 12.0
 #base_local_planner: pr2_navigation_controllers/PoseFollower
 base_local_planner: base_local_planner/TrajectoryPlannerROS
 #oscillation_timeout: 1.0
