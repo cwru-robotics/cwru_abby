@@ -149,6 +149,7 @@ if __name__ == '__main__':
         rospy.loginfo("Moving arm to allow better view of table...")
         #Move arm
         clearArm.sendUntilSuccess(clearArm.RIGHT)
+        rospy.sleep(1.0)
         rospy.loginfo("Running tabletop segmentation...")
         #Run detection service
         resp = controller.runSegmentation()
@@ -168,6 +169,7 @@ if __name__ == '__main__':
             rospy.loginfo("Moving arm to allow better view of table...")
             #Move arm
             clearArm.sendUntilSuccess(clearArm.LEFT)
+            rospy.sleep(1.0)
             rospy.loginfo("Running tabletop segmentation...")
             #Run detection service
             resp = controller.runSegmentation()
