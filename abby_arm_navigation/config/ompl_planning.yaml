@@ -63,9 +63,7 @@ use_monitor: true
 collision_map_safety_timeout: 10000.0
 joint_states_safety_timeout: 1.0
 tf_safety_timeout: 10.0
-default_robot_padding: 0.075
+default_robot_padding: 0.05
 link_padding:
   - link: irb_120 
-    padding: .075
-  - link: gripper_body
-    padding: .1
+    padding: .05

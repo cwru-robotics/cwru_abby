@@ -7,5 +7,3 @@ self_see_links:
     - name: irb_120_link_5
     - name: irb_120_link_6
     - name: gripper_body
-    - name: gripper_jaw_1
-    - name: gripper_jaw_2
