@@ -40,10 +40,4 @@
       <param name="subsample_value" type="double" value=".005" />
      <rosparam command="load" file="$(find abby_config)/config/arm/self_filter.yaml" />
   </node>
-    <!-- Really awesome kinect monitor to kill the openni_node stupidness -->
-    <!-- node pkg="pr2_object_manipulation_launch" type="kinect_monitor.py" name="kinect_monitor" unless="$(arg no_kinect)">
-        <param name="kinect_node_name" value="camera_nodelet_manager" />
-        <param name="grace_period" value="15" />
-        <remap from="camera_info" to="/camera/rgb/camera_info" />
-    </node-->
 </launch>

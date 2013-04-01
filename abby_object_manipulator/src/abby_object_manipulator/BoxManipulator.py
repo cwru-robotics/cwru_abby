@@ -334,7 +334,12 @@ class BoxManipulator:
         elif useY and not useX:
             rospy.loginfo("Can only grab box along y axis")
             width = box.box_dims.y
-            rotationMatrix = transformations.euler_matrix(pi/2, 5*pi/6, -pi/2, 'rzyz')
+            if theta >= pi/4 and theta <= 3*pi/4:
+                rospy.loginfo("Grabbing box along -y axis")
+                rotationMatrix = transformations.euler_matrix(pi/2, 7*pi/6, -pi/2, 'rzyz')
+            else:
+                rospy.loginfo("Grabbing box along y axis")
+                rotationMatrix = transformations.euler_matrix(pi/2, self._makePreGraspPose(boxMat, 1), -pi/2, 'rzyz')
         else:
             #Can use either face for pickup, so pick the one best aligned to the robot
             #TODO only -x and -y are currently correct
