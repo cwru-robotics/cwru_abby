@@ -1,8 +1,8 @@
 <launch>
     <arg name="seed_amcl_left" default="false" />
     <arg name="seed_amcl_right" default="false" />
-    <include file="$(find abby_launch)/launch/seed_amcl_left.launch" if="$(arg seed_amcl_left)" />
-    <include file="$(find abby_launch)/launch/seed_amcl_right.launch" if="$(arg seed_amcl_right)" />
+    <include file="$(find abby_demo)/launch/seed_amcl_left.launch" if="$(arg seed_amcl_left)" />
+    <include file="$(find abby_demo)/launch/seed_amcl_right.launch" if="$(arg seed_amcl_right)" />
     <include file="$(find abby_launch)/launch/nav.launch" />
     
     <include file="$(find abby_object_manipulation_launch)/launch/manipulation_prerequisites.launch" />
