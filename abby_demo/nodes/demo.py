@@ -203,7 +203,11 @@ if __name__ == '__main__':
                 #Stow the arm and return to the table
                 #stowArm.sendUntilSuccess()
                 #goToTable()
-        break;
+            else:
+                break
+        else:
+            continue
+        break
     rospy.loginfo('Picked up all objects. Stowing arm.')
     stowArm.sendUntilSuccess()
     rospy.loginfo('Returning to the operator.')
