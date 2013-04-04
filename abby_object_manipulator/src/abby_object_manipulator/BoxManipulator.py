@@ -411,7 +411,7 @@ class BoxManipulator:
         preGraspGoal.planner_service_name = self.plannerServiceName
         motion_plan_request = MotionPlanRequest()
         motion_plan_request.group_name = self.armGroupName
-        motion_plan_request.num_planning_attempts = 5
+        motion_plan_request.num_planning_attempts = 10
         motion_plan_request.planner_id = ""
         motion_plan_request.allowed_planning_time = rospy.Duration(5,0)
         pos_constraint.weight = 1
@@ -437,7 +437,7 @@ class BoxManipulator:
         graspGoal.planner_service_name = self.plannerServiceName
         motion_plan_request = MotionPlanRequest()
         motion_plan_request.group_name = self.armGroupName
-        motion_plan_request.num_planning_attempts = 5
+        motion_plan_request.num_planning_attempts = 10
         motion_plan_request.planner_id = ""
         motion_plan_request.allowed_planning_time = rospy.Duration(5,0)
         
@@ -516,7 +516,7 @@ class BoxManipulator:
         
         motion_plan_request = MotionPlanRequest()
         motion_plan_request.group_name = self.armGroupName
-        motion_plan_request.num_planning_attempts = 5
+        motion_plan_request.num_planning_attempts = 10
         motion_plan_request.planner_id = ""
         motion_plan_request.allowed_planning_time = rospy.Duration(5,0)
         
