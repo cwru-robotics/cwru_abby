@@ -1,0 +1,8 @@
+<launch>
+    <param name="/amcl/initial_cov_aa" value="0.1" />
+    <param name="/amcl/initial_cov_xx" value="0.1" />
+    <param name="/amcl/initial_cov_yy" value="0.1" />
+    <param name="/amcl/initial_pose_a" value="-0.510" />
+    <param name="/amcl/initial_pose_x" value="-1.865" />
+    <param name="/amcl/initial_pose_y" value="93.799" />
+</launch>
