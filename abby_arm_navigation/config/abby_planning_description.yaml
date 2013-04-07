@@ -2,7 +2,7 @@ multi_dof_joints:
   - name: world_joint
     type: Floating
     parent_frame_id: odom
-    child_frame_id: frame1
+    child_frame_id: base_link
 groups:
   - name: gripper
     joints:

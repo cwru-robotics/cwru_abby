@@ -68,4 +68,4 @@ link_padding:
   - link: irb_120 
     padding: .05
   - link: gripper_body 
-    padding: .06
+    padding: .05
