@@ -32,7 +32,7 @@ class BoxManipulator:
     preGraspDistance = .075 #meters
     gripperFingerLength = 0.115 #meters
     gripperOpenWidth = 0.085 #0.065 #meters
-    gripperClosedWidth = 0.046 #meters
+    gripperClosedWidth = 0.040 #0.046 #meters
     touchLinks = gripperCollisionNames = ("gripper_body", "gripper_jaw_1", "gripper_jaw_2")
     attachLinkName = "gripper_jaw_1"
     
@@ -95,7 +95,7 @@ class BoxManipulator:
         useX = not(box.box_dims.x > self.gripperOpenWidth or box.box_dims.x < self.gripperClosedWidth)
         useY = not(box.box_dims.y > self.gripperOpenWidth or box.box_dims.y < self.gripperClosedWidth)
         if not(useX or useY):
-            rospy.logerr("Could not pick up the box because its dimensions are too large or small for the gripper")
+            rospy.logerr("Could not pick up the box because its dimensions are too large or small for the gripper (%f x %f)",box.box_dims.x,box.box_dims.y)
             self._pickServer.set_aborted()
             return False
         #Add open gripper task to queue
@@ -177,7 +177,7 @@ class BoxManipulator:
             self._tasks.task_done()
             self.runNextTask()
         else:
-            rospy.logerr("Arm motion failed! Error code:%d",result.error_code.val)
+            rospy.logerr("Arm motion failed! (State %d, Error code: %d)",state, result.error_code.val)
             if self._placeServer.is_active():
                 result = PlaceResult()
                 result.manipulation_result.value = result.manipulation_result.FAILED
@@ -225,7 +225,7 @@ class BoxManipulator:
             obj.object.id = task.object_name
             obj.link_name = self.attachLinkName
             obj.touch_links = self.touchLinks
-            #self._attachPub.publish(obj)
+            self._attachPub.publish(obj)
             self._tasks.task_done()
             self.runNextTask()
         elif task.type == task.TYPE_DETACH:
@@ -235,7 +235,7 @@ class BoxManipulator:
             obj.object.header.frame_id = self.frameID
             obj.object.operation.operation = CollisionObjectOperation.DETACH_AND_ADD_AS_OBJECT
             obj.object.id = task.object_name
-            #self._attachPub.publish(obj)
+            self._attachPub.publish(obj)
             self._tasks.task_done()
             self.runNextTask()
         elif task.type == task.TYPE_PICK_SUCCESS:
@@ -451,7 +451,7 @@ class BoxManipulator:
         p = preGraspGoal.motion_plan_request.goal_constraints.position_constraints[0].position
         preGraspMat = transformations.quaternion_matrix([o.x,o.y,o.z,o.w])
         preGraspMat[:3, 3] = [p.x,p.y,p.z]
-        distance = self.preGraspDistance * .75 + self.gripperFingerLength * .5
+        distance = self.preGraspDistance * .5 + self.gripperFingerLength * .5
         graspTransMat = transformations.translation_matrix([0,0,distance])
         graspMat = transformations.concatenate_matrices(preGraspMat, graspTransMat)
         #print preGraspMat
