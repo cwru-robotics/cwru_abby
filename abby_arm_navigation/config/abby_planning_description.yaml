@@ -168,6 +168,14 @@ default_collision_operations:
     object2: gripper_body
     operation: disable  # Adjacent in collision
   -
+    object1: irb_120_link_5
+    object2: gripper_body
+    operation: disable  # Adjacent in collision
+  -
+    object1: irb_120_link_4
+    object2: gripper_body
+    operation: disable  # Adjacent in collision
+  -
     object1: gripper_body
     object2: gripper_jaw_1
     operation: disable  # Adjacent in collision

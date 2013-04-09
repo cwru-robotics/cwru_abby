@@ -167,10 +167,10 @@ if __name__ == '__main__':
             rospy.logerr("Tabletop segmentation error")
     #controller.currentlyHeldObject = GraspableObject()
     #controller.storeObject()
-    for index in range(len(mapResponse.graspable_objects)):
-        rospy.loginfo("Picking up object number %d", index)
-        if controller.pickup(mapResponse, index):
-            controller.storeObject()
-    rospy.spin()
+    #for index in range(len(mapResponse.graspable_objects)):
+    #    rospy.loginfo("Picking up object number %d", index)
+    #    if controller.pickup(mapResponse, index):
+    #        controller.storeObject()
+    #rospy.spin()
     #timer.sleep()
         

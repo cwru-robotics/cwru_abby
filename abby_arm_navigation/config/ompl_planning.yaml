@@ -1,3 +1,4 @@
+publish_diagnostics: true
 planner_configs:
   SBLkConfig1:
     type: kinematic::SBL

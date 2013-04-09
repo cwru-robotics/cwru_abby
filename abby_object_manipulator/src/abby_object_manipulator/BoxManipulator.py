@@ -313,7 +313,7 @@ class BoxManipulator:
         #Turn box pose into a tf matrix in the proper frame
         boxPose = self._tf_listener.transformPose(self.frameID, box.pose)
         boxMat = transformations.quaternion_matrix([boxPose.pose.orientation.x,boxPose.pose.orientation.y,boxPose.pose.orientation.z,boxPose.pose.orientation.w])
-        boxMat[:3, 3] = [boxPose.pose.position.x,boxPose.pose.position.y,boxPose.pose.position.z]
+        boxMat[:3, 3] = [boxPose.pose.position.x,boxPose.pose.position.y,boxPose.pose.position.z+.01] #Lift 1 cm above box CoM
         #Approach Vector is in the principal plane of the box most closely aligned with robot XZ. This plane will be tool YZ
         #Vector is at a downward 30 degree angle
         #Orientation of box should be (approximately) a pure z rotation from the robot base_link
@@ -437,7 +437,7 @@ class BoxManipulator:
         graspGoal.planner_service_name = self.plannerServiceName
         motion_plan_request = MotionPlanRequest()
         motion_plan_request.group_name = self.armGroupName
-        motion_plan_request.num_planning_attempts = 10
+        motion_plan_request.num_planning_attempts = 25
         motion_plan_request.planner_id = ""
         motion_plan_request.allowed_planning_time = rospy.Duration(5,0)
         
