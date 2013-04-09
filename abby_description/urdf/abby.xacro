@@ -19,17 +19,12 @@
 	<joint name="base_dummy" type="fixed" >
 	    <parent link="base_link" />
 	    <child link="dummy" />
-	    <!--origin xyz="0.377 -0.078 0.869" rpy="3.005 1.553 1.541" /--> <!-- 1-10 -->
-	    <!--origin xyz="0.362 -0.067 0.868" rpy="0.361 1.521 -1.171" /--> <!-- 11-20 -->
-	    <!--origin xyz="0.371 -0.058 0.860" rpy="0.479 1.527 -1.046" /-->  <!-- 1-20 -->
-	    <!--origin xyz="0.378 -0.019 0.855" rpy="1.693 1.547 0.098" /-->  <!-- 1-30 -->
-	    <!--origin xyz="0.380 -0.031 0.878" rpy="-2.510 1.546 2.197" /-->  <!-- 1-40 -->
-	    <origin xyz="0.380 0.008 0.858" rpy="2.156 1.514 0.481" /> <!-- 1-45 -->
+	    <origin xyz="0.379 0.008 0.858" rpy="3.142 1.571 1.571" />
 	</joint>
 	<joint name="dummy_arm" type="fixed" >
 	    <parent link="dummy" />
 	    <child link="irb_120_base_link" />
-	    <origin xyz="-.01 0 0" rpy="0 0 -0.05" />
+	    <origin xyz="-0.03 .01 0.035" rpy="0.025 0.032 -0.05" />
 	</joint>
     <!--joint name="frame_arm" type="fixed" -->
         <!--axis xyz="1 0 0"/-->
