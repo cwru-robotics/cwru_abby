@@ -153,24 +153,24 @@ if __name__ == '__main__':
     resetCollider()
     controller = ObjectManipulationController()
     timer = rospy.Rate(.2)
-    while not rospy.is_shutdown():
-        resp = controller.runSegmentation()
-        if resp.result == resp.SUCCESS:
-            rospy.loginfo("Tabletop detection service returned %d clusters", len(resp.clusters))
-            mapResponse = controller.getMapResponse()
-            break
-        elif resp.result == resp.NO_TABLE:
-            rospy.loginfo("No table detected")
-        elif resp.result == resp.NO_CLOUD_RECEIVED:
-            rospy.logwarn("No cloud received")
-        elif resp.result == resp.OTHER_ERROR:
-            rospy.logerr("Tabletop segmentation error")
-    #controller.currentlyHeldObject = GraspableObject()
-    #controller.storeObject()
+    #while not rospy.is_shutdown():
+    #    resp = controller.runSegmentation()
+    #    if resp.result == resp.SUCCESS:
+    #        rospy.loginfo("Tabletop detection service returned %d clusters", len(resp.clusters))
+    #        mapResponse = controller.getMapResponse()
+    #        break
+    #    elif resp.result == resp.NO_TABLE:
+    #        rospy.loginfo("No table detected")
+    #    elif resp.result == resp.NO_CLOUD_RECEIVED:
+    #        rospy.logwarn("No cloud received")
+    #    elif resp.result == resp.OTHER_ERROR:
+    #        rospy.logerr("Tabletop segmentation error")
     #for index in range(len(mapResponse.graspable_objects)):
     #    rospy.loginfo("Picking up object number %d", index)
     #    if controller.pickup(mapResponse, index):
     #        controller.storeObject()
+    controller.currentlyHeldObject = GraspableObject()
+    controller.storeObject()
     #rospy.spin()
     #timer.sleep()
         

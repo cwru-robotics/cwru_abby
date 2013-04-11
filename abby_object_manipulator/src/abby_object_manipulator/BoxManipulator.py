@@ -55,13 +55,12 @@ class BoxManipulator:
         rospy.loginfo('Box manipulator Publishing collision attachments on /attached_collision_object')
         self._boundingBoxClient = rospy.ServiceProxy('find_cluster_bounding_box', FindClusterBoundingBox)
         rospy.loginfo('Box manipulator Connected to bounding box service.')
+        self._tf_listener = tf.TransformListener()
         while not rospy.is_shutdown():
             try:
-                self._tf_listener = tf.TransformListener()
                 self._tf_listener.waitForTransform("/base_link","/irb_120_base_link", rospy.Time(0), rospy.Duration(5.0))
             except (tf.Exception):
-                rospy.loginfo('Box manipulator still waiting on a transform')
-                del self._tf_listener
+                rospy.logwarn('Box manipulator still waiting on a transform')
             else:
                 break;
         self._tf_broadcaster = tf.TransformBroadcaster()
@@ -176,6 +175,12 @@ class BoxManipulator:
             rospy.loginfo("Arm motion successful. ")
             self._tasks.task_done()
             self.runNextTask()
+        elif result.error_code.val == 0:
+            rospy.logwarn("Arm motion returned error code 0. Retrying...")
+            rospy.loginfo('Waiting for arm action server')
+            self._moveArm.wait_for_server()
+            rospy.loginfo('Moving the arm')
+            self._moveArm.send_goal(self._currentTask.move_goal, self._moveArmDoneCB, self._moveArmActiveCB, self._moveArmFeedbackCB)
         else:
             rospy.logerr("Arm motion failed! (State %d, Error code: %d)",state, result.error_code.val)
             if self._placeServer.is_active():
@@ -198,8 +203,8 @@ class BoxManipulator:
         '''Process the next task on the queue and send it to the appropriate action server.
         Warning: This function is recursive for non-move tasks. A lot of non-move tasks in a row
         might eat up a lot of stack memory. I need to fix this, but I'm lazy.'''
-        task = self._tasks.get(True)
-        
+        self._currentTask = self._tasks.get(True)
+        task = self._currentTask
         if task.type == task.TYPE_OPEN:
             rospy.loginfo('Opening the gripper')
             self._gripperClient(gripperRequest.OPEN)
