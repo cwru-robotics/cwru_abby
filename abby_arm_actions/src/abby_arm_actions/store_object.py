@@ -19,39 +19,19 @@ class StoreObject:
         motion_plan_request.num_planning_attempts = 1
         motion_plan_request.planner_id = ""
         motion_plan_request.allowed_planning_time = rospy.Duration(5,0)
-        
-        pos_constraint = PositionConstraint()
-        #pos_constraint.header.frame_id = "/irb_120_base_link"
-        pos_constraint.header.frame_id = "/frame1"
-        pos_constraint.link_name = "gripper_body"
-        pos_constraint.position.x = -0.198
-        pos_constraint.position.y = -0.758
-        pos_constraint.position.z =  0.668
-        pos_constraint.constraint_region_shape.type = Shape.BOX
-        pos_constraint.constraint_region_shape.dimensions = [0.05, 0.05, 0.05]
-        pos_constraint.constraint_region_orientation.x = 0;
-        pos_constraint.constraint_region_orientation.y = 0;
-        pos_constraint.constraint_region_orientation.z = 0;
-        pos_constraint.constraint_region_orientation.w = 1.0;
-        pos_constraint.weight = 1
-        motion_plan_request.goal_constraints.position_constraints.append(pos_constraint)
-        
-        o_constraint = OrientationConstraint()
-        o_constraint.header = pos_constraint.header
-        o_constraint.link_name = pos_constraint.link_name
-        o_constraint.orientation.x = -0.708
-        o_constraint.orientation.y =  0.057
-        o_constraint.orientation.z = -0.386
-        o_constraint.orientation.w =  0.589
-        #o_constraint.orientation.x =  0.694
-        #o_constraint.orientation.y =  0.570
-        #o_constraint.orientation.z = -0.275
-        #o_constraint.orientation.w =  0.343
-        o_constraint.absolute_roll_tolerance = 0.04
-        o_constraint.absolute_pitch_tolerance = 0.04
-        o_constraint.absolute_yaw_tolerance = 0.04
-        o_constraint.weight = 1
-        motion_plan_request.goal_constraints.orientation_constraints.append(o_constraint)
+        for i in range(0,6):
+            joint_constraint = JointConstraint()
+            joint_constraint.joint_name = "joint"+str(i+1)
+            joint_constraint.tolerance_below = 0.05
+            joint_constraint.tolerance_above = 0.05
+            motion_plan_request.goal_constraints.joint_constraints.append(joint_constraint)
+        #Joint Positions
+        motion_plan_request.goal_constraints.joint_constraints[0].position = -1.03
+        motion_plan_request.goal_constraints.joint_constraints[1].position =  0.21
+        motion_plan_request.goal_constraints.joint_constraints[2].position = 1.09
+        motion_plan_request.goal_constraints.joint_constraints[3].position = 0.0
+        motion_plan_request.goal_constraints.joint_constraints[4].position = 0.03
+        motion_plan_request.goal_constraints.joint_constraints[5].position = 1.33
         
         self.goal.motion_plan_request = motion_plan_request
         
@@ -75,15 +55,17 @@ class StoreObject:
     def sendUntilSuccess(self, timeOut = 60):
         result = False
         r = rospy.Rate(1)
-        while not result:
+        while not result and not rospy.is_shutdown():
             result = self.sendOnce(timeOut)
             if not result:
                 r.sleep()
+        if rospy.is_shutdown():
+            return False
         status = result.error_code
         if status.val == status.SUCCESS:
             rospy.loginfo("Arm successfully moved to bin.")
         else:
-            rospy.logerr("Arm failed to go to bin.")
+            rospy.logwarn("Arm failed to go to bin.")
         return result
     
     def storeObject(self, timeOut = 60):
