@@ -97,6 +97,6 @@ if __name__ == '__main__':
     if not demo.goToTable():
         rospy.logerr("Error going to the table")
         sys.exit(1)
-    else
+    else:
         rospy.loginfo("Finished script. Shutting down")
         sys.exit(0)
