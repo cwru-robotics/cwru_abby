@@ -125,7 +125,7 @@ class ObjectManipulationController:
         goal.arm_name = 'irb_120'
         bin_location = PoseStamped()
         bin_location.header.frame_id = '/frame1'
-        bin_location.pose.position.x = -0.174#-0.198
+        bin_location.pose.position.x = -0.2#-0.198
         bin_location.pose.position.y = -0.672#-0.758
         bin_location.pose.position.z =  0.835#0.671#0.668
         bin_location.pose.orientation.x = -0.665#-0.708

@@ -199,7 +199,7 @@ class DemoTask:
                 if not controller.storeObject():
                     #If can't store object (due to table collision), back up, try again
                     rospy.logwarn("Error storing object number %d", index)
-                    backup()
+                    self.backup()
                     #controller.storeObject():
                     #Stow the arm and return to the table
                     #stowArm.sendUntilSuccess()
