@@ -63,43 +63,49 @@ from geometry_msgs.msg import PoseWithCovarianceStamped
 #demo
 import demo
 
+class DrivingDemo(demo.DemoTask):
+    def run(self):
+        rospy.init_node('abby_demo')
+        rospy.loginfo("Demo node initialized. Waiting for AMCL...")
+        
+        #Wait on services and set initial conditions
+        #Wait on AMCL
+        rospy.wait_for_service('/global_localization')
+        rospy.loginfo("AMCL is up. Waiting Move Base...")
+        #Wait on move base action server
+        self.move_base = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        self.move_base.wait_for_server()
+        rospy.loginfo("Move Base is up. Waiting for move_irb_120...")
+        #Wait for arm action server
+        move_irb_120 = actionlib.SimpleActionClient('move_irb_120', MoveArmAction)
+        move_irb_120.wait_for_server()
+        rospy.loginfo("move_irb_120 is up. Stowing arm...")
+        #Stow arm
+        stowArm = StowArm()
+        clearArm = ClearArm()
+        stowArm.sendUntilSuccess()
+        #Wait on gripper service
+        rospy.loginfo("Closing Gripper...")
+        rospy.wait_for_service('abby_gripper/gripper')
+        self.gripper = rospy.ServiceProxy('abby_gripper/gripper', gripper)
+        #Close gripper
+        self.gripper(gripperRequest.CLOSE)
+        #Set up manipulator
+        rospy.loginfo('Starting the object manipulation controller')
+        controller = ObjectManipulationController()
+        
+        #Go to pickup position
+        if not self.goToTable():
+            rospy.logerr("Error going to the table")
+            sys.exit(1)
+        if self.goToOperator():
+            rospy.loginfo("Finished script. Shutting down")
+            sys.exit(0)
+        else:
+            rospy.logerr("Failed to drive back to the operator :(")
+            sys.exit(1)
+        
+
 if __name__ == '__main__':
-    rospy.init_node('abby_demo')
-    rospy.loginfo("Demo node initialized. Waiting for AMCL...")
-    
-    #Wait on services and set initial conditions
-    #Wait on AMCL
-    rospy.wait_for_service('/global_localization')
-    rospy.loginfo("AMCL is up. Waiting Move Base...")
-    #Wait on move base action server
-    move_base = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-    move_base.wait_for_server()
-    rospy.loginfo("Move Base is up. Waiting for move_irb_120...")
-    #Wait for arm action server
-    move_irb_120 = actionlib.SimpleActionClient('move_irb_120', MoveArmAction)
-    move_irb_120.wait_for_server()
-    rospy.loginfo("move_irb_120 is up. Stowing arm...")
-    #Stow arm
-    stowArm = StowArm()
-    clearArm = ClearArm()
-    stowArm.sendUntilSuccess()
-    #Wait on gripper service
-    rospy.loginfo("Closing Gripper...")
-    rospy.wait_for_service('abby_gripper/gripper')
-    gripper = rospy.ServiceProxy('abby_gripper/gripper', gripper)
-    #Close gripper
-    gripper(gripperRequest.CLOSE)
-    #Set up manipulator
-    rospy.loginfo('Starting the object manipulation controller')
-    controller = ObjectManipulationController()
-    
-    #Go to pickup position
-    if not demo.goToTable():
-        rospy.logerr("Error going to the table")
-        sys.exit(1)
-    if demo.goToOperator():
-        rospy.loginfo("Finished script. Shutting down")
-        sys.exit(0)
-    else:
-        rospy.logerr("Failed to drive back to the operator :(")
-        sys.exit(1)
+    task = DrivingDemo()
+    task.run()

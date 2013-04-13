@@ -60,114 +60,96 @@ from move_base_msgs.msg import MoveBaseGoal
 #AMCL
 from geometry_msgs.msg import PoseWithCovarianceStamped
 
-def goToTable():
-    '''Go to the table to pick things up from'''
-    #return True
-    rospy.loginfo('Going to the table')
-    goal = MoveBaseGoal()
-    goal.target_pose.header.frame_id = 'map'
-    goal.target_pose.header.stamp = rospy.Time.now()
-    
-    goal.target_pose.pose.position.x = 1.591
-    goal.target_pose.pose.position.y = 91.559
-    goal.target_pose.pose.orientation = Quaternion(0.0,0.0,-.482518,.875886)
-    move_base.send_goal(goal)
-    move_base.wait_for_result()
-    if move_base.get_state() == GoalStatus.SUCCEEDED:
-        rospy.loginfo("Arrived at pickup position")
-        return True
-    else:
-        rospy.logerr("Could not drive to pickup position %d")
-        return False
+class DemoTask:
+    def goToTable(self):
+        '''Go to the table to pick things up from'''
+        #return True
+        rospy.loginfo('Going to the table')
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = 'map'
+        goal.target_pose.header.stamp = rospy.Time.now()
+        
+        goal.target_pose.pose.position.x = 1.591
+        goal.target_pose.pose.position.y = 91.559
+        goal.target_pose.pose.orientation = Quaternion(0.0,0.0,-.482518,.875886)
+        self.move_base.send_goal(goal)
+        self.move_base.wait_for_result()
+        if self.move_base.get_state() == GoalStatus.SUCCEEDED:
+            rospy.loginfo("Arrived at pickup position")
+            return True
+        else:
+            rospy.logerr("Could not drive to pickup position %d")
+            return False
 
-def goToOperator():
-    '''Return to operator position'''
-    #return True
-    goal = MoveBaseGoal()
-    goal.target_pose.header.frame_id = 'map'
-    goal.target_pose.header.stamp = rospy.Time.now()
-    
-    goal.target_pose.pose.position.x = 0.574
-    goal.target_pose.pose.position.y = 95.22
-    goal.target_pose.pose.orientation = Quaternion(0,0,.883525, .468384)
-    move_base.send_goal(goal)
-    move_base.wait_for_result()
-    if move_base.get_state() == GoalStatus.SUCCEEDED:
-        rospy.loginfo("Returned to operator position")
-        return True
-    else:
-        rospy.logerr("Could not drive to operator position")
-        return False
-    
-def backup():
-    '''Back up a few cm to give the arm some space to move'''
-    rospy.logerr("You called an unimplemented method! (backup)")
-    sys.exit(1)
-    return False
-
-def perturbBase():
-    '''Randomly move the drivetrain a little to enable picking stuff up'''
-    rospy.logerr("You called an unimplemented method! (perturb)")
-    return False
-
-if __name__ == '__main__':
-    rospy.init_node('abby_demo')
-    rospy.loginfo("Demo node initialized. Waiting for AMCL...")
-    
-    #Wait on services and set initial conditions
-    #Wait on AMCL
-    rospy.wait_for_service('/global_localization')
-    rospy.loginfo("AMCL is up. Waiting Move Base...")
-    #Wait on move base action server
-    move_base = actionlib.SimpleActionClient('move_base', MoveBaseAction)
-    move_base.wait_for_server()
-    rospy.loginfo("Move Base is up. Waiting for move_irb_120...")
-    #Wait for arm action server
-    move_irb_120 = actionlib.SimpleActionClient('move_irb_120', MoveArmAction)
-    move_irb_120.wait_for_server()
-    rospy.loginfo("move_irb_120 is up. Stowing arm...")
-    #Stow arm
-    stowArm = StowArm()
-    clearArm = ClearArm()
-    stowArm.sendUntilSuccess()
-    #Wait on gripper service
-    rospy.loginfo("Closing Gripper...")
-    rospy.wait_for_service('abby_gripper/gripper')
-    gripper = rospy.ServiceProxy('abby_gripper/gripper', gripper)
-    #Close gripper
-    gripper(gripperRequest.CLOSE)
-    #Set up manipulator
-    rospy.loginfo('Starting the object manipulation controller')
-    controller = ObjectManipulationController()
-    
-    #Go to pickup position
-    if not goToTable():
-        rospy.logerr("Error going to the table")
+    def goToOperator(self):
+        '''Return to operator position'''
+        #return True
+        goal = MoveBaseGoal()
+        goal.target_pose.header.frame_id = 'map'
+        goal.target_pose.header.stamp = rospy.Time.now()
+        
+        goal.target_pose.pose.position.x = 0.574
+        goal.target_pose.pose.position.y = 95.22
+        goal.target_pose.pose.orientation = Quaternion(0,0,.883525, .468384)
+        self.move_base.send_goal(goal)
+        self.move_base.wait_for_result()
+        if self.move_base.get_state() == GoalStatus.SUCCEEDED:
+            rospy.loginfo("Returned to operator position")
+            return True
+        else:
+            rospy.logerr("Could not drive to operator position")
+            return False
+        
+    def backup(self):
+        '''Back up a few cm to give the arm some space to move'''
+        rospy.logerr("You called an unimplemented method! (backup)")
         sys.exit(1)
+        return False
+
+    def perturbBase(self):
+        '''Randomly move the drivetrain a little to enable picking stuff up'''
+        rospy.logerr("You called an unimplemented method! (perturb)")
+        return False
     
-    while not rospy.is_shutdown(): 
-        rospy.loginfo("Moving arm to allow better view of table...")
-        #Move arm
-        clearArm.sendUntilSuccess(clearArm.RIGHT)
-        rospy.loginfo("Running tabletop segmentation...")
-        #Run detection service
-        resp = controller.runSegmentation()
-        if resp.result == resp.SUCCESS:
-            rospy.loginfo("Tabletop detection service returned %d clusters", len(resp.clusters))
-        elif resp.result == resp.NO_TABLE:
-            rospy.logwarn("No table detected")
-            perturbBase()
-        elif resp.result == resp.NO_CLOUD_RECEIVED:
-            rospy.logwarn("Tabletop segmenter did not receive a point cloud.")
-            rospy.sleep(rospy.Duration(1,0))
-        elif resp.result == resp.OTHER_ERROR:
-            rospy.logerr("Tabletop segmentation error")
+    def run(self):
+        rospy.init_node('abby_demo')
+        rospy.loginfo("Demo node initialized. Waiting for AMCL...")
+        
+        #Wait on services and set initial conditions
+        #Wait on AMCL
+        rospy.wait_for_service('/global_localization')
+        rospy.loginfo("AMCL is up. Waiting Move Base...")
+        #Wait on move base action server
+        self.move_base = actionlib.SimpleActionClient('move_base', MoveBaseAction)
+        self.move_base.wait_for_server()
+        rospy.loginfo("Move Base is up. Waiting for move_irb_120...")
+        #Wait for arm action server
+        move_irb_120 = actionlib.SimpleActionClient('move_irb_120', MoveArmAction)
+        move_irb_120.wait_for_server()
+        rospy.loginfo("move_irb_120 is up. Stowing arm...")
+        #Stow arm
+        stowArm = StowArm()
+        clearArm = ClearArm()
+        stowArm.sendUntilSuccess()
+        #Wait on gripper service
+        rospy.loginfo("Closing Gripper...")
+        rospy.wait_for_service('abby_gripper/gripper')
+        self.gripper = rospy.ServiceProxy('abby_gripper/gripper', gripper)
+        #Close gripper
+        self.gripper(gripperRequest.CLOSE)
+        #Set up manipulator
+        rospy.loginfo('Starting the object manipulation controller')
+        controller = ObjectManipulationController()
+        
+        #Go to pickup position
+        if not self.goToTable():
+            rospy.logerr("Error going to the table")
             sys.exit(1)
-        if len(controller.getMapResponse().graspable_objects) == 0:
-            rospy.logwarn("There are no objects on the table")
+        
+        while not rospy.is_shutdown(): 
             rospy.loginfo("Moving arm to allow better view of table...")
             #Move arm
-            clearArm.sendUntilSuccess(clearArm.LEFT)
+            clearArm.sendUntilSuccess(clearArm.RIGHT)
             rospy.loginfo("Running tabletop segmentation...")
             #Run detection service
             resp = controller.runSegmentation()
@@ -184,36 +166,60 @@ if __name__ == '__main__':
                 sys.exit(1)
             if len(controller.getMapResponse().graspable_objects) == 0:
                 rospy.logwarn("There are no objects on the table")
-        
-        #Pick up all objects on table
-        for index in range(len(controller.getMapResponse().graspable_objects)):
-            #break
-            rospy.loginfo("Picking up object number %d", index)
-            if not controller.pickup(controller.getMapResponse(), index):
-                rospy.logerr("Error picking up object number %d", index)
-                continue #Move on to next object
-                #sys.exit(1)
-                #If can't pick up any object, perturb drivetrain, try again
-                #perturbBase()
-            if not controller.storeObject():
-                #If can't store object (due to table collision), back up, try again
-                rospy.logwarn("Error storing object number %d", index)
-                backup()
-                #controller.storeObject():
-                #Stow the arm and return to the table
-                #stowArm.sendUntilSuccess()
-                #goToTable()
+                rospy.loginfo("Moving arm to allow better view of table...")
+                #Move arm
+                clearArm.sendUntilSuccess(clearArm.LEFT)
+                rospy.loginfo("Running tabletop segmentation...")
+                #Run detection service
+                resp = controller.runSegmentation()
+                if resp.result == resp.SUCCESS:
+                    rospy.loginfo("Tabletop detection service returned %d clusters", len(resp.clusters))
+                elif resp.result == resp.NO_TABLE:
+                    rospy.logwarn("No table detected")
+                    perturbBase()
+                elif resp.result == resp.NO_CLOUD_RECEIVED:
+                    rospy.logwarn("Tabletop segmenter did not receive a point cloud.")
+                    rospy.sleep(rospy.Duration(1,0))
+                elif resp.result == resp.OTHER_ERROR:
+                    rospy.logerr("Tabletop segmentation error")
+                    sys.exit(1)
+                if len(controller.getMapResponse().graspable_objects) == 0:
+                    rospy.logwarn("There are no objects on the table")
+            
+            #Pick up all objects on table
+            for index in range(len(controller.getMapResponse().graspable_objects)):
+                #break
+                rospy.loginfo("Picking up object number %d", index)
+                if not controller.pickup(controller.getMapResponse(), index):
+                    rospy.logerr("Error picking up object number %d", index)
+                    continue #Move on to next object
+                    #sys.exit(1)
+                    #If can't pick up any object, perturb drivetrain, try again
+                    #perturbBase()
+                if not controller.storeObject():
+                    #If can't store object (due to table collision), back up, try again
+                    rospy.logwarn("Error storing object number %d", index)
+                    backup()
+                    #controller.storeObject():
+                    #Stow the arm and return to the table
+                    #stowArm.sendUntilSuccess()
+                    #goToTable()
+                else:
+                    break
             else:
-                break
+                continue
+            break
+        rospy.loginfo('Picked up all objects. Stowing arm.')
+        stowArm.sendUntilSuccess()
+        rospy.loginfo('Returning to the operator.')
+        if self.goToOperator():
+            rospy.loginfo("Finished script. Shutting down")
+            sys.exit(0)
         else:
-            continue
-        break
-    rospy.loginfo('Picked up all objects. Stowing arm.')
-    stowArm.sendUntilSuccess()
-    rospy.loginfo('Returning to the operator.')
-    if goToOperator():
-        rospy.loginfo("Finished script. Shutting down")
-        sys.exit(0)
-    else:
-        rospy.logerr("Failed to drive back to the operator :(")
-        sys.exit(1)
+            rospy.logerr("Failed to drive back to the operator :(")
+            sys.exit(1)
+        
+
+if __name__ == '__main__':
+    task = DemoTask()
+    task.run()
