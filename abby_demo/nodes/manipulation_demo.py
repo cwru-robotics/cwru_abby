@@ -93,6 +93,11 @@ class ManipulationDemo(demo.DemoTask):
         #Set up manipulator
         rospy.loginfo('Starting the object manipulation controller')
         controller = ObjectManipulationController()
+        
+        #Go to pickup position
+        if not self.goToTable():
+            rospy.logerr("Error going to the table")
+            sys.exit(1)
     
         while not rospy.is_shutdown(): 
             rospy.loginfo("Moving arm to allow better view of table...")
