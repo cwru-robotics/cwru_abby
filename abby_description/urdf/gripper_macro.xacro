@@ -18,7 +18,7 @@
 		</inertial>
 		<collision>
 			<geometry>
-			    <box size="0.08 0.08 0.15" />
+			    <box size="0.08 0.08 0.13" />
 			    <!--cylinder radius="0.04" length="0.13" /-->
 				<!--mesh filename="package://abby_description/meshes/gripper_body.stl" scale="0.0254 0.0254 0.0254"/-->
 			</geometry>

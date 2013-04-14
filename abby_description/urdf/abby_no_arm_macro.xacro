@@ -340,9 +340,11 @@
 		</inertial>
 		<collision>
 			<geometry>
-				<mesh filename="package://abby_description/meshes/compressor_iam_e870b89.stl" scale="0.0254 0.0254 0.0254"/>
+			    <box size="0.26 0.12 0.27" />
+				<!--mesh filename="package://abby_description/meshes/compressor_iam_e870b89.stl" scale="0.0254 0.0254 0.0254"/-->
 			</geometry>
-			<origin rpy="0 0 0" xyz="0.217095026073 0.0541649919903 0.058507418554"/>
+			<origin rpy="0 0 0" xyz="0.13 0 -0.015"/> <!-- For box -->
+			<!--origin rpy="0 0 0" xyz="0.217095026073 0.0541649919903 0.058507418554"/--> <!--For mesh -->
 		</collision>
 	</link>
 	<joint name="compressor--top_plate1" type="fixed">
