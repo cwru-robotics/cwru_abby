@@ -6,7 +6,7 @@
 	<xacro:irb_120 prefix="irb_120_"/>
     <xacro:abby_no_arm />
     <xacro:abby_gripper />
-	<xacro:kinect xyz="0.508 -0.035 1.601" rpy="0.045 0.880 0.0" parent_frame="base_link" />
+	<xacro:kinect xyz="0.508 -0.010 1.601" rpy="0.045 0.880 0.0" parent_frame="base_link" />
 	<link name="base_link">
 	</link>
 	<link name="dummy">
@@ -19,7 +19,7 @@
 	<joint name="base_dummy" type="fixed" >
 	    <parent link="base_link" />
 	    <child link="dummy" />
-	    <origin xyz="0.379 0.008 0.858" rpy="3.142 1.571 1.571" />
+	    <origin xyz="0.379 0.033 0.858" rpy="3.142 1.571 1.571" />
 	</joint>
 	<joint name="dummy_arm" type="fixed" >
 	    <parent link="dummy" />
@@ -27,7 +27,7 @@
 	    <!--origin xyz="-0.032 -0.006 0.043" rpy="0.026 0.025 -0.047" /--> <!-- 1-10, 21-25 -->
 	    <!--origin xyz="-0.028 -0.006 0.040" rpy="0.026 0.015 -0.044" /--> <!-- 1-10, 16-25 -->
 	    <!--origin xyz="-0.028 -0.006 0.040" rpy="0.026 0.015 -0.044" /--> <!-- 1-10, 16-30 -->
-	    <origin xyz="-0.028 -0.006 0.035" rpy="0.026 0.015 -0.044" /> <!-- 1-10, 16-30, tweaked -->
+	    <origin xyz="-0.028 -0.006 0.038" rpy="0.026 0.015 -0.044" /> <!-- 1-10, 16-30, tweaked -->
 	    <!--origin xyz="-0.03 .01 0.035" rpy="0.025 0.032 -0.05" /--> <!--Visually aligned -->
 	</joint>
     <!--joint name="frame_arm" type="fixed" -->

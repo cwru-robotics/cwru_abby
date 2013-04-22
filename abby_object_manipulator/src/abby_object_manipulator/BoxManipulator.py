@@ -203,8 +203,8 @@ class BoxManipulator:
         '''Process the next task on the queue and send it to the appropriate action server.
         Warning: This function is recursive for non-move tasks. A lot of non-move tasks in a row
         might eat up a lot of stack memory. I need to fix this, but I'm lazy.'''
-        self._currentTask = self._tasks.get(True)
-        task = self._currentTask
+        task = self._tasks.get(True)
+        self._currentTask = copy.deepcopy(task)
         if task.type == task.TYPE_OPEN:
             rospy.loginfo('Opening the gripper')
             self._gripperClient(gripperRequest.OPEN)

@@ -98,11 +98,13 @@ class ManipulationDemo(demo.DemoTask):
         if not self.goToTable():
             rospy.logerr("Error going to the table")
             sys.exit(1)
-    
+        clearMap = {0: clearArm.RIGHT, 1: clearArm.LEFT}
+        nextClear = 0
         while not rospy.is_shutdown(): 
             rospy.loginfo("Moving arm to allow better view of table...")
             #Move arm
-            clearArm.sendUntilSuccess(clearArm.RIGHT)
+            clearArm.sendUntilSuccess(clearMap[nextClear])
+            nextClear = not nextClear
             rospy.loginfo("Running tabletop segmentation...")
             #Run detection service
             resp = controller.runSegmentation()
@@ -121,7 +123,8 @@ class ManipulationDemo(demo.DemoTask):
                 rospy.logwarn("There are no objects on the table")
                 rospy.loginfo("Moving arm to allow better view of table...")
                 #Move arm
-                clearArm.sendUntilSuccess(clearArm.LEFT)
+                clearArm.sendUntilSuccess(clearMap[nextClear])
+                nextClear = not nextClear
                 rospy.loginfo("Running tabletop segmentation...")
                 #Run detection service
                 resp = controller.runSegmentation()

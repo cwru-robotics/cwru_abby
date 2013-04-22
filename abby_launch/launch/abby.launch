@@ -36,7 +36,7 @@
       <remap from="cloud_in" to="/camera/depth_registered/points" />
       <remap from="cloud_out" to="/camera/depth_registered/object_modeling_points_filtered" />
       <param name="sensor_frame" type="string" value="/camera_rgb_optical_frame" />
-      <param name="subsample_value" type="double" value=".003" />
+      <param name="subsample_value" type="double" value=".002" />
      <rosparam command="load" file="$(find abby_config)/config/arm/self_filter.yaml" />
   </node>
 </launch>
