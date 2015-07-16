@@ -1,3 +1,0 @@
-<launch>
-    <node pkg="abby_demo" type="demo.py" name="demo_script" output="screen" />
-</launch>
