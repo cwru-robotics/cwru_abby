@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<robot xmlns:xacro="http://ros.org/wiki/xacro" name="abby">
+    <!-- Macro for adding transmissions to controlled joints !-->
+    <xacro:macro name="trans" params="name controller">
+        <transmission name="${name}_trans">
+            <type>transmission_interface/SimpleTransmission</type>
+            <joint name="${name}" >
+                <hardwareInterface>hardware_interface/${controller}</hardwareInterface>
+            </joint>
+            <actuator name="${name}_actuator">
+                <mechanicalReduction>1</mechanicalReduction>
+            </actuator>
+        </transmission>
+    </xacro:macro>
+
+    <xacro:trans name="l_drive_wheel_joint" controller="VelocityJointInterface" />
+    <xacro:trans name="r_drive_wheel_joint" controller="VelocityJointInterface" />
+
+    <!-- <xacro:trans name="joint1" controller="PositionJointInterface" />
+    <xacro:trans name="joint2" controller="PositionJointInterface" />
+    <xacro:trans name="joint3" controller="PositionJointInterface" />
+    <xacro:trans name="joint4" controller="PositionJointInterface" />
+    <xacro:trans name="joint5" controller="PositionJointInterface" />
+    <xacro:trans name="joint6" controller="PositionJointInterface" /> -->
+
+    <gazebo>
+        <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+        <robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+        </plugin>
+    </gazebo>
+
+</robot>

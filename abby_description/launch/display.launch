@@ -1,0 +1,18 @@
+<launch>
+    <arg name="model" default="abby" doc="" />
+    <arg name="type" default="xacro" doc="[xacro|urdf]" />
+    <arg name="filename" default="$(find abby_description)/urdf/$(arg model).$(arg type)" doc="" />
+    <arg name="model_test" default="true" doc="Is this for testing the model with RVIZ? [true|false]" />
+
+    <param if="$(eval arg('type') == 'xacro')" name="robot_description" command="$(find xacro)/xacro $(arg filename)" />
+    <param unless="$(eval arg('type') == 'xacro')" name="robot_description" textfile="$(arg filename)" />
+    
+    <node type="rviz" name="rviz" pkg="rviz" args="-d $(find abby_description)/config/config.rviz" required="true" />
+
+    <node if="$(eval art('model_test') == 'true')" pkg="joint_state_publisher_gui" name="joint_state_publisher_gui" type="joint_state_publisher_gui" />
+    <node if="$(eval art('model_test') == 'true')" pkg="robot_state_publisher" name="robot_state_publisher" type="robot_state_publisher" />
+
+</launch>
+    
+    
+    

@@ -1,0 +1,71 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- Model -->
+    <arg name="model" default="abby.xacro" doc="The model to use. The default is abby.xacro." />
+    <!-- Absolute path to the model. -->
+    <arg name="filename" default="$(find abby_description)/urdf/$(arg model)" doc="Full path to the model to use." />
+    <!-- Allow teleoperation from a joystick !-->
+    <arg name="teleop" default="true" doc="Teleoperate the model with a joystick. [false|true]" />
+    <!-- An alternate world file to use -->
+    <arg name="world_name" default="" doc="Name of an alternate world file to use" />
+    <!-- Using the ODE physic engine by default -->
+    <arg name="physics" default="ode" doc="Physics engine to use (see gazebo_ros empty_world.launch file for details" />
+    <!-- It used to be necessary to start paused to get controllers to work right, not now -->
+    <arg name="paused" default="false" doc="Start Gazebo paused" />
+    <!-- Start the RVIZ console. -->
+    <arg name="gui" default="false" doc="Start the RVIZ control panel for the robot.  [false|true]" />
+    <!-- Joystick device -->
+    <arg name="joy_dev" default="/dev/input/js0" doc="Joystick location (default is /dev/input/js0)" />
+
+
+    <param name="robot_description" command="$(find xacro)/xacro $(arg filename)" />
+
+    <!-- Start Gazebo !-->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <arg name="physics" value="$(arg physics)" />
+        <arg name="paused" value="$(arg paused)" />
+        <arg unless="$(eval arg('world_name') == '')" name="world_name" value="$(arg world_name)" />
+    </include>
+
+    <!-- Spawn a robot into Gazebo -->
+    <!-- The URDF version of the model !-->
+    <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model abby -x 0.0 -y 0.0 -z 0.0" />
+
+
+    <node pkg="joint_state_publisher" name="joint_state_publisher" type="joint_state_publisher" />
+    <node pkg="robot_state_publisher" name="robot_state_publisher" type="robot_state_publisher" />
+
+    <!-- Load joint controller configurations from YAML file to parameter server -->
+    <rosparam file="$(find abby_description)/config/abby_controller.yaml" command="load"/>
+
+    <!-- load the controllers -->
+    <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen" 
+        args="
+        joint_state_controller
+        abby_controller
+        "/>
+
+    <!-- Start RVIZ if so desired. -->
+    <include if="$(arg gui)" file="$(find abby_description)/launch/display.launch">
+        <arg name="model_test" value="false" />
+        <arg name="model" value="$(arg model)" />
+        <arg name="filename" value="$(filename)" />
+    </include>
+
+    <!-- Start the node to publish joystick messages -->
+    <node if="$(arg teleop)" pkg="joy" type="joy_node" name="joy_node">
+    <!-- <node pkg="joy" type="joy_node" name="joy_node"> -->
+        <param name="dev" value="$(arg joy_dev)" />
+        <param name="deadzone" value="0.0" />
+        <param name="autorepeat_rate" value="10" />
+    </node>
+
+    <!-- Start node to take joystick messages and publish cmd_vel commands -->
+    <node if="$(arg teleop)" pkg="teleop_twist_joy" name="teleop_twist_joy" type="teleop_node">
+    <!-- <node pkg="teleop_twist_joy" name="teleop_twist_joy" type="teleop_node"> -->
+        <rosparam command="load" file="$(find abby_description)/config/joystick.yaml" />
+        <remap from="cmd_vel" to="abby_controller/cmd_vel" />
+    </node>
+
+</launch>

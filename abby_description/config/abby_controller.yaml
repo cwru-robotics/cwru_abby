@@ -1,0 +1,13 @@
+# Publish all joint states -----------------------------------
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 20  
+
+abby_controller:
+  type: "diff_drive_controller/DiffDriveController"
+  left_wheel: 'l_drive_wheel_joint'
+  right_wheel: 'r_drive_wheel_joint'
+  pose_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 1000.0]
+  twist_covariance_diagonal: [0.001, 0.001, 1000000.0, 1000000.0, 1000000.0, 1000.0]
+  wheel_radius: 0.16862
+  wheel_separation: 0.556513746
