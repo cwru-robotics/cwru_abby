@@ -14,9 +14,12 @@
   <depend package="rviz" />
   <depend package="gazebo_ros" />
   <depend package="openni_description" />
-  <depend package="openni_camera" />
   <depend package="ros_control" />
   <depend package="ros_controllers" />
+  <depend package="gazebo_ros_control" />
+  <depend package="joy" />
+  <depend package="teleop_twist_joy" />
+  <depend package="teleop_twist_keyboard" />
   
 </package>
 

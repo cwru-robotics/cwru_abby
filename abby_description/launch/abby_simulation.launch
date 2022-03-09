@@ -6,7 +6,7 @@
     <!-- Absolute path to the model. -->
     <arg name="filename" default="$(find abby_description)/urdf/$(arg model)" doc="Full path to the model to use." />
     <!-- Allow teleoperation from a joystick !-->
-    <arg name="teleop" default="true" doc="Teleoperate the model with a joystick. [false|true]" />
+    <arg name="teleop" default="" doc="Provide a teleoperation interface. [none|joystick|keyboard|rqt]" />
     <!-- An alternate world file to use -->
     <arg name="world_name" default="" doc="Name of an alternate world file to use" />
     <!-- Using the ODE physic engine by default -->
@@ -33,6 +33,7 @@
     <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model abby -x 0.0 -y 0.0 -z 0.0" />
 
 
+    <!-- Start the joint_state_publisher and robot_state_publisher nodes. -->
     <node pkg="joint_state_publisher" name="joint_state_publisher" type="joint_state_publisher" />
     <node pkg="robot_state_publisher" name="robot_state_publisher" type="robot_state_publisher" />
 
@@ -54,7 +55,7 @@
     </include>
 
     <!-- Start the node to publish joystick messages -->
-    <node if="$(arg teleop)" pkg="joy" type="joy_node" name="joy_node">
+    <node if="$(eval arg('teleop') == 'joystick')" pkg="joy" type="joy_node" name="joy_node">
     <!-- <node pkg="joy" type="joy_node" name="joy_node"> -->
         <param name="dev" value="$(arg joy_dev)" />
         <param name="deadzone" value="0.0" />
@@ -62,10 +63,16 @@
     </node>
 
     <!-- Start node to take joystick messages and publish cmd_vel commands -->
-    <node if="$(arg teleop)" pkg="teleop_twist_joy" name="teleop_twist_joy" type="teleop_node">
+    <node if="$(eval arg('teleop') == 'joystick')" pkg="teleop_twist_joy" name="teleop_twist_joy" type="teleop_node">
     <!-- <node pkg="teleop_twist_joy" name="teleop_twist_joy" type="teleop_node"> -->
         <rosparam command="load" file="$(find abby_description)/config/joystick.yaml" />
         <remap from="cmd_vel" to="abby_controller/cmd_vel" />
     </node>
+
+    <!-- Start the keyboard interface. -->
+    <node if="$(eval arg('teleop') == 'keyboard')" pkg="teleop_twist_keyboard" name="teleop_twist_keyboard" type="teleop_twist_keyboard" />
+
+    <!-- Start the RQt robot_steering interface. -->
+    <node if="$(eval arg('teleop') == 'rqt')" pkg="rqt_robot_steering" name="rqt_robot_steering" type="rqt_robot_steering" />
 
 </launch>
